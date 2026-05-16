@@ -8,6 +8,20 @@ def calculer_moyenne(liste_notes):
 notes = {}
 coef = {}
 
+def sauvegarder():
+    with open('notes.json' , 'w') as f:
+        json.dump({'notes': notes, 'coef': coef}, f)
+
+def charger():
+    global notes, coef
+    try:
+        with open('notes.json', 'r') as f:
+            data = json.load(f)
+            notes = data['notes']
+            coef = data['coef']
+    except FileNotFoundError:
+        pass
+
 def ajouter_notes():
     while True:
         matiere = input('Matiere (ou fin pour arreter) ')
@@ -39,6 +53,7 @@ def ajouter_notes():
                         print('Note invalide')
                 except ValueError:
                     print('Choisissez un numero')
+        sauvegarder()
 
 
 def voir_moyenne():
@@ -55,6 +70,7 @@ def voir_moyenne():
         somme_coef += coef[matiere]
     print(f'Moyenne Generale : {somme_ponderee /somme_coef:.2f}')
 
+charger()
 
 while True:
     print('\n--- MENU ---')
