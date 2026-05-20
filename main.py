@@ -100,6 +100,47 @@ def reinitialiser():
     elif comfirmation.lower() == 'n':
         print('Annulé.')
 
+def supprimer_matiere():
+    global notes, coef
+    while True:
+        print('Liste des matieres')
+        for matiere in notes:
+            print(f'  {matiere} ')
+        matiere = input('\nQuel matiere ?(Ou fin pour annuler) : ')
+        if matiere in notes:
+            del notes[matiere]
+            del coef[matiere]
+            sauvegarder()
+            print(f'{matiere} is clear')
+            break
+        elif matiere.lower() == 'fin':
+            break
+        else:
+             print(f"{matiere} n'existe pas")
+
+
+def menu_modifier():
+    while True:
+        print("---- Modifier / Supprimer ----")
+        print('1. Supprimer une matiere')
+        print('2. Supprimer une note')
+        print('3. Modifier une note')
+        print('4. Retour')
+
+        choix2 = input('\nVotre choix ? : ')
+        if choix2 == '1':
+            supprimer_matiere()
+        elif choix2 == '2':
+            pass
+        elif choix2 == '3':
+            pass
+        elif choix2 == '4':
+            break
+        else:
+            print('Choix invalide')
+
+
+
 # --- Demarage ----
 
 charger()
@@ -110,8 +151,9 @@ while True:
     print('1. Ajouter des notes')
     print('2. Voir les moyennes')
     print('3. Voir les notes')
-    print('5. Reinitialiser')
-    print('5. Quitter')
+    print('4. Reinitialiser')
+    print('5. Modifier')
+    print('6. Quitter')
 
     choix = input('\nVotre choix ? : ')
 
@@ -124,6 +166,8 @@ while True:
     elif choix == '4':
         reinitialiser()
     elif choix == '5':
+        menu_modifier()
+    elif choix == '6':
         print('See you soon!')
         break
     else:
