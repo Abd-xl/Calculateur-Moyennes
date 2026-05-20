@@ -89,6 +89,17 @@ def voir_notes():
         for note in notes[matiere]:
             print(f'  {note}/20')
 
+def reinitialiser():
+    global notes, coef
+    comfirmation = input('\nVoulez vous reinitialiser ? y/n: ')
+    if comfirmation.lower() == 'y':
+        notes.clear()
+        coef.clear()
+        sauvegarder()
+        print('Success')
+    elif comfirmation.lower() == 'n':
+        print('Annulé.')
+
 # --- Demarage ----
 
 charger()
@@ -99,7 +110,8 @@ while True:
     print('1. Ajouter des notes')
     print('2. Voir les moyennes')
     print('3. Voir les notes')
-    print('4. Quitter')
+    print('5. Reinitialiser')
+    print('5. Quitter')
 
     choix = input('\nVotre choix ? : ')
 
@@ -110,6 +122,8 @@ while True:
     elif choix == '3':
         voir_notes()
     elif choix == '4':
+        reinitialiser()
+    elif choix == '5':
         print('See you soon!')
         break
     else:
