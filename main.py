@@ -118,20 +118,54 @@ def supprimer_matiere():
         else:
              print(f"{matiere} n'existe pas")
 
+def supprimer_notes():
+    global notes, coef
+    voir_notes()
+    while True:
+
+        matiere = str(input('\nDans quel matiere ? (ou fin) : '))
+
+        if matiere.lower() == 'fin':
+            break
+        elif not matiere in notes:
+            print(f'{matiere} n\'existe pas')
+            continue
+        while True:
+            try:
+                supp = float(input(f'Quel note de {matiere} veut tu supprimer ? '))
+            except ValueError:
+                print('What have you done')
+                continue
+            if not notes[matiere]:
+                print(f"{matiere} est vide ")
+                break
+            elif not supp in notes[matiere]:
+                print(f"{supp} n'existe pas dans {matiere}")
+                continue
+            elif supp in notes[matiere]:
+                notes[matiere].remove(supp)
+                print(f'{supp} is removed ')
+                sauvegarder()
+                voir_notes()
+                break
+            else:
+                 print('error')
+
+
 
 def menu_modifier():
     while True:
         print("---- Modifier / Supprimer ----")
         print('1. Supprimer une matiere')
         print('2. Supprimer une note')
-        print('3. Modifier une note')
+        print('3. Modifier une note (dont work yet)')
         print('4. Retour')
 
         choix2 = input('\nVotre choix ? : ')
         if choix2 == '1':
             supprimer_matiere()
         elif choix2 == '2':
-            pass
+            supprimer_notes()
         elif choix2 == '3':
             pass
         elif choix2 == '4':
