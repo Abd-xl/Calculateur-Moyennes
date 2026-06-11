@@ -1,7 +1,9 @@
 # Calculateur de Moyennes
 
 ## Description
-Le **Calculateur de Moyennes** est une application Python permettant de gérer des notes scolaires par matière, calculer les moyennes pondérées et afficher diverses informations liées aux résultats scolaires d’un étudiant.
+Le **Calculateur de Moyennes** est une application Python permettant de gérer des notes scolaires par matière, calculer les moyennes pondérées et afficher diverses informations liées aux résultats scolaires.
+
+---
 
 ### Fonctionnalités
 - Ajouter des notes et leurs coefficients.
@@ -25,6 +27,7 @@ Le **Calculateur de Moyennes** est une application Python permettant de gérer d
    ```sh
    git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
    ```
+
 2. Exécutez le fichier principal de l’application :
    ```sh
    python main.py
@@ -43,7 +46,7 @@ Le **Calculateur de Moyennes** est une application Python permettant de gérer d
 - **6. Quitter :** Terminez l'application.
 
 ### Fichier de sauvegarde
-Les données des notes et des coefficients sont enregistrées automatiquement dans un fichier `notes.json` pour être récupérées lors du prochain démarrage.
+Les données des notes et des coefficients sont enregistrées automatiquement dans un fichier `notes.json` pour être récupérées lors du prochain démarrage. Le programme est capable de gérer les erreurs de fichier, y compris les fichiers JSON corrompus.
 
 ---
 
@@ -65,6 +68,11 @@ Toute contribution est la bienvenue ! Voici comment vous pouvez aider :
 
 ## Historique des versions
 
+### [1.2.0] - 2026-06-11
+- Réorganisation en plusieurs fichiers : `main.py`, `gestion_notes.py`, `sauvegarde.py`.
+- Ajout de validations utilisateur robustes pour éviter les erreurs.
+- Amélioration de la gestion des sauvegardes : réinitialisation et gestion des JSON corrompus.
+
 ### [1.1.0] - 2026-05-21
 - Possibilité de modifier une note existante.
 
@@ -78,3 +86,8 @@ Toute contribution est la bienvenue ! Voici comment vous pouvez aider :
 ### [0.1.0] - 2026-05-16
 - Première version du calculateur de moyennes.
 - Ajout des fonctionnalités de calcul de moyennes et de gestion des matières/notes.
+
+---
+
+## Auteurs
+- **Abd-xl** : Créateur principal
