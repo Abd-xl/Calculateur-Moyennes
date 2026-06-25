@@ -13,25 +13,26 @@ def afficher_menu():
 def main():
     charger()
     print('---------Welcome to the note calculator------------')
+    
+    while True:
+        afficher_menu()
+        choix = input('\nVotre choix ? : ')
+        if choix == '1':
+            ajouter_notes()
+        elif choix == '2':
+            voir_moyenne()
+        elif choix == '3':
+            voir_notes()
+        elif choix == '4':
+            reinitialiser()
+        elif choix == '5':
+            menu_modifier()
+        elif choix == '6':
+            print('See you soon!')
+            break
+        else:
+            print('Choix invalide')
 
-while True:
-    afficher_menu()
-    choix = input('\nVotre choix ? : ')
-    if choix == '1':
-        ajouter_notes()
-    elif choix == '2':
-        voir_moyenne()
-    elif choix == '3':
-        voir_notes()
-    elif choix == '4':
-        reinitialiser()
-    elif choix == '5':
-        menu_modifier()
-    elif choix == '6':
-        print('See you soon!')
-        break
-    else:
-        print('Choix invalide')
 
 if __name__ == "__main__":
     main()
