@@ -28,3 +28,21 @@ Aucune logique de notes n'a encore été modifiée.
 
 ### Prochaine étape
 Faire passer une première donnée Python vers Jinja avec une variable, puis l'afficher dans la page avec `{{ ... }}`.
+
+
+## 2026-09-26 — Première réutilisation du cœur Python
+
+### Ce qui a changé
+- Une fonction `ajouter_note(matiere, note)` a été extraite de `gestion_note.py`.
+- Cette fonction ne demande plus de `input()` et ne fait pas de `print()` : elle reçoit des données et les ajoute à la structure existante.
+- `app.py` importe maintenant cette fonction ainsi que `notes`.
+- Flask utilise donc les mêmes données que le reste du programme au lieu de conserver son propre dictionnaire de démonstration.
+
+### Architecture
+Le formulaire web → Flask → `ajouter_note()` → `notes` → sauvegarde JSON.
+
+### Point important
+Nous avons commencé à séparer l'interface de la logique métier. `gestion_note.py` peut progressivement devenir indépendant du terminal.
+
+### Prochaine étape
+Améliorer la validation des données reçues par Flask, puis utiliser correctement les coefficients et la structure réelle du calculateur.
