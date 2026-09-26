@@ -275,3 +275,12 @@ Tester les actions de modification et de suppression depuis les fenêtres, puis 
 ### Prochaine étape
 Tester les nouveaux cas avant de poursuivre vers le tableur.
 
+
+
+## 2026-09-26 — Conservation du barème original
+
+### Correction
+- Les notes ne sont plus converties et stockées directement sur /20.
+- Chaque note conserve maintenant sa valeur et son barème d'origine, par exemple `10/10` ou `15/20`.
+- La conversion sur /20 est effectuée uniquement au moment du calcul de la moyenne.
+- La modification et la suppression utilisent l'index de la note afin de distinguer deux notes ayant la même valeur.
