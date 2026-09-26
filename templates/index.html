@@ -18,6 +18,7 @@
         <label for="note">Note :</label>
         <input type="number" id="note" name="note" min="0" max="20" step="0.01" required>
 
+        <input type="hidden" name="action" value="ajouter">
         <button type="submit">Ajouter la note</button>
     </form>
 
@@ -30,7 +31,16 @@
         <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
 
         {% for note in liste_notes %}
-            <p>{{ note }}/20</p>
+            <div>
+                <span>{{ note }}/20</span>
+
+                <form method="POST">
+                    <input type="hidden" name="action" value="supprimer">
+                    <input type="hidden" name="matiere" value="{{ matiere }}">
+                    <input type="hidden" name="note" value="{{ note }}">
+                    <button type="submit">Supprimer</button>
+                </form>
+            </div>
         {% endfor %}
     {% endfor %}
 
