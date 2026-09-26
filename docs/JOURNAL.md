@@ -83,3 +83,19 @@ Le HTML est responsable de l'affichage. Les calculs restent en Python : cela év
 
 ### Prochaine étape
 Tester et renforcer le chargement des données, puis améliorer progressivement l'interface et les opérations de modification/suppression.
+
+
+## 2026-09-26 — Chargement des données au démarrage
+
+### Problème
+`app.py` appelait `charger()` à chaque requête HTTP. Comme les dictionnaires sont conservés en mémoire et que `charger()` utilisait `update()`, cela pouvait réinjecter des données inutilement.
+
+### Correction
+- `charger()` est maintenant appelé une fois au démarrage de l'application Flask.
+- Les cas de fichier absent ou de JSON invalide sont traités en repartant d'un état vide.
+
+### Compréhension
+Une requête HTTP ne doit pas reconstruire inutilement l'état de l'application. Pour cette première architecture, les données sont chargées au démarrage puis modifiées en mémoire et sauvegardées lorsque nécessaire.
+
+### Limite connue
+Cette architecture avec des variables globales et un fichier JSON reste adaptée à un petit projet local. Elle devra évoluer vers une vraie couche de persistance, probablement SQLite puis PostgreSQL, lorsque le projet deviendra plus sérieux ou multi-utilisateur.
