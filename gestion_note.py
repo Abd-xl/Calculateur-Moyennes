@@ -30,6 +30,17 @@ def ajouter_note(matiere, note, coefficient):
     sauvegarder()
 
 
+def supprimer_note(matiere, note):
+    if matiere not in notes:
+        raise ValueError("Cette matière n'existe pas.")
+
+    if note not in notes[matiere]:
+        raise ValueError("Cette note n'existe pas dans cette matière.")
+
+    notes[matiere].remove(note)
+    sauvegarder()
+
+
 def calculer_moyennes():
     resultats = {}
     somme_ponderee = 0
