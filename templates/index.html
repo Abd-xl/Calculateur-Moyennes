@@ -4,51 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculateur de moyennes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header>
-        <h1>Calculateur de moyennes</h1>
+    <header class="app-header">
+        <div class="app-header__inner">
+            <h1>Calculateur de moyennes</h1>
+        </div>
     </header>
 
     <main>
         {% if message %}
-            <section>
+            <section class="message">
                 <p>{{ message }}</p>
             </section>
         {% endif %}
 
-        <section>
-            <h2>Matières</h2>
+        <section class="section">
+            <h2 class="section-title">Matières</h2>
 
             {% if notes %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Matière</th>
-                            <th scope="col">Moyenne</th>
-                            <th scope="col">Coefficient</th>
-                            <th scope="col">Modifier</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for matiere, liste_notes in notes.items() %}
-                            <tr>
-                                <td>{{ matiere }}</td>
-                                <td>{{ "%.2f"|format(moyennes[matiere]) }}/20</td>
-                                <td>{{ coef[matiere] }}</td>
-                                <td>
-                                    <button
-                                        type="button"
-                                        onclick="document.getElementById('notes-{{ loop.index }}').showModal()"
-                                    >
-                                        Modifier
-                                    </button>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="subject-list">
+                    {% for matiere, liste_notes in notes.items() %}
+                        <article class="subject">
+                            <span class="subject__name">{{ matiere }}</span>
+                            <span class="subject__average">
+                                {{ "%.2f"|format(moyennes[matiere]) }}/20
+                            </span>
+                            <span class="subject__coef">
+                                Coef. {{ coef[matiere] }}
+                            </span>
+                        </article>
+                    {% endfor %}
+                </div>
 
                 {% for matiere, liste_notes in notes.items() %}
                     <dialog id="notes-{{ loop.index }}">
@@ -109,21 +97,52 @@
             {% endif %}
         </section>
 
-        <section>
-            <a href="{{ url_for('tableur') }}">Remplir le tableur</a>
+        <section class="section">
+            <div class="action-list">
+                <a class="action" href="{{ url_for('tableur') }}">
+                    <div>
+                        <div class="action__label">Remplir le tableur</div>
+                        <p class="action__description">
+                            Saisir plusieurs notes rapidement.
+                        </p>
+                    </div>
+                    <span class="action__arrow">→</span>
+                </a>
+            </div>
         </section>
 
-        <section>
-            <h2>Moyenne générale</h2>
-            <p>{{ "%.2f"|format(moyenne_generale) }}/20</p>
+        <section class="section">
+            <h2 class="section-title">Moyenne générale</h2>
+
+            <div class="average-card">
+                <p class="average-card__value">
+                    {{ "%.2f"|format(moyenne_generale) }}/20
+                </p>
+            </div>
         </section>
 
-        <section>
-            <a href="{{ url_for('liste_notes') }}">Lister toutes les notes</a>
-        </section>
+        <section class="section">
+            <div class="action-list">
+                <a class="action" href="{{ url_for('liste_notes') }}">
+                    <div>
+                        <div class="action__label">Lister toutes les notes</div>
+                        <p class="action__description">
+                            Consulter l'ensemble des notes enregistrées.
+                        </p>
+                    </div>
+                    <span class="action__arrow">→</span>
+                </a>
 
-        <section>
-            <a href="{{ url_for('ajouter') }}">Ajouter une note</a>
+                <a class="action" href="{{ url_for('ajouter') }}">
+                    <div>
+                        <div class="action__label">Ajouter une note</div>
+                        <p class="action__description">
+                            Ajouter une note à une matière.
+                        </p>
+                    </div>
+                    <span class="action__arrow">→</span>
+                </a>
+            </div>
         </section>
     </main>
 </body>
