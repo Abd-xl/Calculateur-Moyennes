@@ -30,6 +30,26 @@ def ajouter_note(matiere, note, coefficient):
     sauvegarder()
 
 
+def calculer_moyennes():
+    resultats = {}
+    somme_ponderee = 0
+    somme_coef = 0
+
+    for matiere, liste_notes in notes.items():
+        moyenne = calculer_moyenne(liste_notes)
+        resultats[matiere] = moyenne
+        somme_ponderee += moyenne * coef[matiere]
+        somme_coef += coef[matiere]
+
+    moyenne_generale = (
+        somme_ponderee / somme_coef
+        if somme_coef > 0
+        else 0
+    )
+
+    return resultats, moyenne_generale
+
+
 def ajouter_notes():
     while True:
         matiere = input('\nMatiere (ou fin pour terminer) :')
