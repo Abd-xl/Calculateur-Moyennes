@@ -114,3 +114,18 @@ Un formulaire HTML peut envoyer différentes actions à la même route. Flask li
 
 ### Prochaine étape
 Ajouter la suppression d'une matière, puis aborder la modification d'une note.
+
+
+## 2026-09-26 — Suppression d'une matière depuis le Web
+
+### Ce qui a changé
+- Ajout de `supprimer_matiere(matiere)` dans `gestion_note.py`.
+- La fonction supprime les notes de la matière et son coefficient.
+- Flask reconnaît maintenant l'action `supprimer_matiere`.
+- Un bouton permet de supprimer chaque matière depuis la page.
+
+### Point important
+Une matière est représentée par deux structures liées : `notes[matiere]` et `coef[matiere]`. Les deux doivent être supprimées ensemble pour conserver un état cohérent.
+
+### Prochaine étape
+Implémenter la modification d'une note avec un formulaire Web.
