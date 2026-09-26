@@ -8,34 +8,60 @@ def calculer_moyenne(liste_notes):
     return sum(liste_notes) / len(liste_notes)
 
 
-def ajouter_note(matiere, note, coefficient):
+def _trouver_matiere(matiere):
+    nom = matiere.strip()
+
+    if not nom:
+        return None
+
+    if nom in notes:
+        return nom
+
+    for nom_existant in notes:
+        if nom_existant.strip().casefold() == nom.casefold():
+            return nom_existant
+
+    return None
+
+
+def ajouter_note(matiere, note, coefficient, bareme=20):
     if not matiere.strip():
         raise ValueError("La matière ne peut pas être vide.")
 
     if not isinstance(note, (int, float)):
         raise TypeError("La note doit être un nombre.")
-    if not 0 <= note <= 20:
-        raise ValueError("La note doit être comprise entre 0 et 20.")
+    if bareme not in (10, 20):
+        raise ValueError("Le barème doit être 10 ou 20.")
+
+    if not 0 <= note <= bareme:
+        raise ValueError(f"La note doit être comprise entre 0 et {bareme}.")
 
     if not isinstance(coefficient, int):
         raise TypeError("Le coefficient doit être un entier.")
     if coefficient <= 0:
         raise ValueError("Le coefficient doit être supérieur à 0.")
 
-    if matiere not in notes:
+    matiere_existante = _trouver_matiere(matiere)
+
+    if matiere_existante is not None:
+        if coef[matiere_existante] != coefficient:
+            raise ValueError(
+                f"La matière existe déjà avec le coefficient {coef[matiere_existante]}."
+            )
+        matiere = matiere_existante
+    else:
         notes[matiere] = []
         coef[matiere] = coefficient
-    elif coef[matiere] != coefficient:
-        raise ValueError(
-            f"La matière existe déjà avec le coefficient {coef[matiere]}."
-        )
 
-    notes[matiere].append(note)
+    note_sur_20 = note * 20 / bareme
+    notes[matiere].append(note_sur_20)
     sauvegarder()
 
 
 def modifier_note(matiere, ancienne_note, nouvelle_note):
-    if matiere not in notes:
+    matiere = _trouver_matiere(matiere)
+
+    if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
 
     if not 0 <= nouvelle_note <= 20:
@@ -50,7 +76,9 @@ def modifier_note(matiere, ancienne_note, nouvelle_note):
 
 
 def supprimer_matiere(matiere):
-    if matiere not in notes:
+    matiere = _trouver_matiere(matiere)
+
+    if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
 
     del notes[matiere]
@@ -59,7 +87,9 @@ def supprimer_matiere(matiere):
 
 
 def supprimer_note(matiere, note):
-    if matiere not in notes:
+    matiere = _trouver_matiere(matiere)
+
+    if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
 
     if note not in notes[matiere]:
@@ -99,7 +129,10 @@ def ajouter_notes():
         if matiere.lower() == "fin":
             break
 
-        if matiere in notes:
+        matiere_existante = _trouver_matiere(matiere)
+
+        if matiere_existante is not None:
+            matiere = matiere_existante
             coefficient = coef[matiere]
         else:
             while True:
@@ -164,7 +197,7 @@ def menu_supprimer_matiere():
 
         matiere = input("\nQuelle matiere ? (ou fin pour annuler) : ")
 
-        if matiere in notes:
+        if _trouver_matiere(matiere) is not None:
             try:
                 supprimer_matiere(matiere)
                 print(f"{matiere} is clear")
@@ -186,7 +219,7 @@ def supprimer_notes():
         if matiere.lower() == "fin":
             break
 
-        if matiere not in notes:
+        if _trouver_matiere(matiere) is None:
             print(f"{matiere} n'existe pas")
             continue
 
