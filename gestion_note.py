@@ -6,6 +6,18 @@ def calculer_moyenne(liste_notes):
         return 0
     return sum(liste_notes) / len(liste_notes)
 
+def ajouter_note(matiere, note):
+    if not isinstance(note, (int, float)):
+        raise TypeError("La note doit être un nombre.")
+    if not 0 <= note <= 20:
+        raise ValueError("La note doit être comprise entre 0 et 20.")
+    if matiere not in notes:
+        raise ValueError("Cette matière n'existe pas.")
+    
+    notes[matiere].append(note)
+    sauvegarder()
+
+
 def ajouter_notes():
     while True:
         matiere = input('\nMatiere (ou fin pour terminer) :')
