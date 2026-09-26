@@ -36,20 +36,33 @@ def accueil():
 @app.route("/ajouter", methods=["GET", "POST"])
 def ajouter():
     if request.method == "GET":
-        return render_template("ajouter.html")
+        return render_template("ajouter.html", notes=notes, coef=coef)
 
     try:
-        matiere = request.form["matiere"]
+        mode = request.form["mode"]
         note = float(request.form["note"])
-        coefficient = int(request.form["coefficient"])
+        bareme = int(request.form["bareme"])
 
-        ajouter_note(matiere, note, coefficient)
+        if mode == "existante":
+            matiere = request.form["matiere_existante"]
+            coefficient = coef[matiere]
+        else:
+            matiere = request.form["nouvelle_matiere"]
+            coefficient = int(request.form["coefficient"])
 
-        message = f"Note ajoutée : {matiere} — {note}/20"
+        ajouter_note(matiere, note, coefficient, bareme)
+
+        note_sur_20 = note * 20 / bareme
+        message = f"Note ajoutée : {matiere} — {note:g}/{bareme} ({note_sur_20:g}/20)"
         return redirect(url_for("accueil", message=message))
 
-    except (TypeError, ValueError) as erreur:
-        return render_template("ajouter.html", message=str(erreur))
+    except (KeyError, TypeError, ValueError) as erreur:
+        return render_template(
+            "ajouter.html",
+            notes=notes,
+            coef=coef,
+            message=str(erreur),
+        )
 
 
 @app.route("/notes")
