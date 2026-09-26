@@ -1,47 +1,20 @@
-from flask import Flask, render_template, request
-from gestion_note import ajouter_note, calculer_moyennes, modifier_note, supprimer_matiere, supprimer_note, notes, coef
+from flask import Flask, render_template, request, redirect, url_for
+from gestion_note import (
+    ajouter_note,
+    calculer_moyennes,
+    modifier_note,
+    supprimer_matiere,
+    supprimer_note,
+    notes,
+    coef,
+)
 from sauvegarde import charger
 
 app = Flask(__name__)
 charger()
 
 
-@app.route("/", methods=["GET", "POST"])
-def accueil():
-    message = None
-
-    if request.method == "POST":
-        action = request.form.get("action")
-
-        try:
-            if action == "ajouter":
-                matiere = request.form["matiere"]
-                note = float(request.form["note"])
-                coefficient = int(request.form["coefficient"])
-                ajouter_note(matiere, note, coefficient)
-                message = f"Note ajoutée : {matiere} — {note}/20"
-
-            elif action == "supprimer":
-                matiere = request.form["matiere"]
-                note = float(request.form["note"])
-                supprimer_note(matiere, note)
-                message = f"Note supprimée : {matiere} — {note}/20"
-
-            elif action == "modifier":
-                matiere = request.form["matiere"]
-                ancienne_note = float(request.form["ancienne_note"])
-                nouvelle_note = float(request.form["nouvelle_note"])
-                modifier_note(matiere, ancienne_note, nouvelle_note)
-                message = f"Note modifiée : {matiere} — {ancienne_note} → {nouvelle_note}/20"
-
-            elif action == "supprimer_matiere":
-                matiere = request.form["matiere"]
-                supprimer_matiere(matiere)
-                message = f"Matière supprimée : {matiere}"
-
-        except (TypeError, ValueError) as erreur:
-            message = str(erreur)
-
+def afficher_page(message=None):
     moyennes, moyenne_generale = calculer_moyennes()
 
     return render_template(
@@ -50,8 +23,78 @@ def accueil():
         coef=coef,
         moyennes=moyennes,
         moyenne_generale=moyenne_generale,
-        message=message
+        message=message,
     )
+
+
+@app.route("/")
+def accueil():
+    message = request.args.get("message")
+    return afficher_page(message)
+
+
+@app.route("/ajouter", methods=["POST"])
+def ajouter():
+    try:
+        matiere = request.form["matiere"]
+        note = float(request.form["note"])
+        coefficient = int(request.form["coefficient"])
+
+        ajouter_note(matiere, note, coefficient)
+
+        message = f"Note ajoutée : {matiere} — {note}/20"
+        return redirect(url_for("accueil", message=message))
+
+    except (TypeError, ValueError) as erreur:
+        return afficher_page(str(erreur))
+
+
+@app.route("/supprimer", methods=["POST"])
+def supprimer():
+    try:
+        matiere = request.form["matiere"]
+        note = float(request.form["note"])
+
+        supprimer_note(matiere, note)
+
+        message = f"Note supprimée : {matiere} — {note}/20"
+        return redirect(url_for("accueil", message=message))
+
+    except (TypeError, ValueError) as erreur:
+        return afficher_page(str(erreur))
+
+
+@app.route("/modifier", methods=["POST"])
+def modifier():
+    try:
+        matiere = request.form["matiere"]
+        ancienne_note = float(request.form["ancienne_note"])
+        nouvelle_note = float(request.form["nouvelle_note"])
+
+        modifier_note(matiere, ancienne_note, nouvelle_note)
+
+        message = (
+            f"Note modifiée : {matiere} — "
+            f"{ancienne_note} → {nouvelle_note}/20"
+        )
+        return redirect(url_for("accueil", message=message))
+
+    except (TypeError, ValueError) as erreur:
+        return afficher_page(str(erreur))
+
+
+@app.route("/supprimer-matiere", methods=["POST"])
+def supprimer_matiere_route():
+    try:
+        matiere = request.form["matiere"]
+
+        supprimer_matiere(matiere)
+
+        message = f"Matière supprimée : {matiere}"
+        return redirect(url_for("accueil", message=message))
+
+    except (TypeError, ValueError) as erreur:
+        return afficher_page(str(erreur))
 
 
 if __name__ == "__main__":
