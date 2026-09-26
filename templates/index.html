@@ -7,6 +7,13 @@
 </head>
 <body>
     <h1>Calculateur de moyennes</h1>
-    <p>Première page Flask + Jinja.</p>
+
+    {% for matiere, liste_notes in notes.items() %}
+        <h2>{{ matiere }}</h2>
+
+        {% for note in liste_notes %}
+            <p>{{ note }}/20</p>
+        {% endfor %}
+    {% endfor %}
 </body>
 </html>
