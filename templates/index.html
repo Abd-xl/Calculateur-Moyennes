@@ -34,6 +34,12 @@
                             <span class="subject__coef">
                                 Coef. {{ coef[matiere] }}
                             </span>
+                            <button
+                                type="button"
+                                onclick="document.getElementById('notes-{{ loop.index }}').showModal()"
+                            >
+                                Voir
+                            </button>
                         </article>
                     {% endfor %}
                 </div>
