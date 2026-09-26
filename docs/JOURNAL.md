@@ -65,3 +65,21 @@ Flask est responsable de recevoir et convertir les données du formulaire. La lo
 
 ### Prochaine étape
 Calculer et afficher les moyennes depuis les vraies données, puis supprimer progressivement les données de démonstration.
+
+
+## 2026-09-26 — Calcul des moyennes dans la couche métier
+
+### Ce qui a changé
+- Extraction de `calculer_moyennes()` dans `gestion_note.py`.
+- La fonction calcule la moyenne de chaque matière et la moyenne générale pondérée par les coefficients.
+- `app.py` appelle cette fonction et transmet les résultats à Jinja.
+- Jinja affiche les moyennes sans effectuer lui-même les calculs.
+
+### Architecture
+Données → fonctions Python de calcul → Flask → Jinja → HTML.
+
+### Compréhension
+Le HTML est responsable de l'affichage. Les calculs restent en Python : cela évite de mélanger la logique métier avec la présentation.
+
+### Prochaine étape
+Tester et renforcer le chargement des données, puis améliorer progressivement l'interface et les opérations de modification/suppression.
