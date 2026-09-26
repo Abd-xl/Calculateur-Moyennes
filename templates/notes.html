@@ -4,29 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toutes les notes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header>
-        <h1>Toutes les notes</h1>
-        <a href="{{ url_for('accueil') }}">Retour</a>
+    <header class="app-header">
+        <div class="app-header__inner">
+            <div class="page-header">
+                <div>
+                    <p class="page-eyebrow">Consultation</p>
+                    <h1>Toutes les notes</h1>
+                </div>
+                <a class="back-action" href="{{ url_for('accueil') }}">← Accueil</a>
+            </div>
+        </div>
     </header>
 
     <main>
-        {% if notes %}
-            {% for matiere, liste_notes in notes.items() %}
-                <section>
-                    <h2>{{ matiere }}</h2>
-                    <p>Coefficient : {{ coef[matiere] }}</p>
+        <section class="section page-intro">
+            <h2 class="section-title">Notes enregistrées</h2>
+            <p class="page-description">Consulte toutes les notes actuellement enregistrées par matière.</p>
+        </section>
 
-                    <ul>
-                        {% for note in liste_notes %}
-                            <li>{{ note }}/20</li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            {% endfor %}
+        {% if notes %}
+            <section class="notes-list">
+                {% for matiere, liste_notes in notes.items() %}
+                    <article class="subject-card">
+                        <div class="subject-card__header">
+                            <div>
+                                <h2>{{ matiere }}</h2>
+                                <p>Coefficient {{ coef[matiere] }}</p>
+                            </div>
+                            <span class="subject-card__count">{{ liste_notes|length }} note{% if liste_notes|length != 1 %}s{% endif %}</span>
+                        </div>
+
+                        <div class="note-grid">
+                            {% for note in liste_notes %}
+                                <div class="note-item">{{ note }}/20</div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
         {% else %}
-            <p>Aucune note enregistrée.</p>
+            <section class="empty-state">
+                <h2>Aucune note enregistrée</h2>
+                <p>Ajoute une première note pour commencer.</p>
+                <a class="primary-action" href="{{ url_for('ajouter') }}">Ajouter une note <span aria-hidden="true">→</span></a>
+            </section>
         {% endif %}
     </main>
 </body>
