@@ -8,7 +8,7 @@
 <body>
     <h1>Calculateur de moyennes</h1>
 
-    <form method="POST">
+    <form method="POST" action="/ajouter">
         <label for="matiere">Matière :</label>
         <input type="text" id="matiere" name="matiere" required>
 
@@ -18,7 +18,6 @@
         <label for="note">Note :</label>
         <input type="number" id="note" name="note" min="0" max="20" step="0.01" required>
 
-        <input type="hidden" name="action" value="ajouter">
         <button type="submit">Ajouter la note</button>
     </form>
 
@@ -30,8 +29,7 @@
         <h2>{{ matiere }} (coefficient {{ coef[matiere] }})</h2>
         <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
 
-        <form method="POST">
-            <input type="hidden" name="action" value="supprimer_matiere">
+        <form method="POST" action="/supprimer-matiere">
             <input type="hidden" name="matiere" value="{{ matiere }}">
             <button type="submit">Supprimer la matière</button>
         </form>
@@ -40,16 +38,14 @@
             <div>
                 <span>{{ note }}/20</span>
 
-                <form method="POST">
-                    <input type="hidden" name="action" value="modifier">
+                <form method="POST" action="/modifier">
                     <input type="hidden" name="matiere" value="{{ matiere }}">
                     <input type="hidden" name="ancienne_note" value="{{ note }}">
                     <input type="number" name="nouvelle_note" min="0" max="20" step="0.01" placeholder="Nouvelle note" required>
                     <button type="submit">Modifier</button>
                 </form>
 
-                <form method="POST">
-                    <input type="hidden" name="action" value="supprimer">
+                <form method="POST" action="/supprimer">
                     <input type="hidden" name="matiere" value="{{ matiere }}">
                     <input type="hidden" name="note" value="{{ note }}">
                     <button type="submit">Supprimer</button>
