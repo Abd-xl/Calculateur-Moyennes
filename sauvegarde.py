@@ -21,7 +21,11 @@ def charger():
             coef.update(data.get("coef", {}))
             print("Données chargées avec succès.")
     except FileNotFoundError:
-        pass
+        notes.clear()
+        coef.clear()
+    except (json.JSONDecodeError, TypeError):
+        notes.clear()
+        coef.clear()
 
 def reinitialiser():
     global notes, coef
