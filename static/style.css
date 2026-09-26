@@ -1,0 +1,212 @@
+:root {
+    --background: #0f1115;
+    --surface: #171a21;
+    --surface-hover: #1d212a;
+    --border: #292e38;
+    --text: #f2f4f7;
+    --text-muted: #9299a6;
+    --accent: #7c8cff;
+    --accent-hover: #909eff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    font: inherit;
+}
+
+.app-header {
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+}
+
+.app-header__inner {
+    width: min(1100px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 650;
+}
+
+main {
+    width: min(900px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 48px;
+}
+
+.section {
+    margin-bottom: 28px;
+}
+
+.section-title {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.average-card {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.average-card__value {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subject-list {
+    display: grid;
+    gap: 8px;
+}
+
+.subject {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.subject:hover {
+    background: var(--surface-hover);
+    border-color: #343b48;
+}
+
+.subject__name {
+    min-width: 0;
+    font-weight: 600;
+}
+
+.subject__average,
+.subject__coef {
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.action-list {
+    display: grid;
+    gap: 8px;
+}
+
+.action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.action:hover {
+    background: var(--surface-hover);
+}
+
+.action__label {
+    font-weight: 600;
+}
+
+.action__description {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.action__arrow {
+    color: var(--text-muted);
+}
+
+.message {
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+dialog {
+    width: min(520px, calc(100% - 32px));
+    max-height: min(700px, calc(100vh - 32px));
+    overflow: auto;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+}
+
+dialog::backdrop {
+    background: rgb(0 0 0 / 70%);
+}
+
+dialog h2 {
+    margin-top: 0;
+}
+
+dialog li {
+    margin-bottom: 12px;
+}
+
+@media (max-width: 600px) {
+    main {
+        width: min(100% - 20px, 900px);
+        padding-top: 20px;
+    }
+
+    .app-header__inner {
+        width: calc(100% - 20px);
+    }
+
+    .subject {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 14px;
+    }
+
+    .subject__coef {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .subject__average {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .action {
+        padding: 14px;
+    }
+}
