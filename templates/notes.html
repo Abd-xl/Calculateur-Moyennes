@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toutes les notes</title>
+</head>
+<body>
+    <header>
+        <h1>Toutes les notes</h1>
+        <a href="{{ url_for('accueil') }}">Retour</a>
+    </header>
+
+    <main>
+        {% if notes %}
+            {% for matiere, liste_notes in notes.items() %}
+                <section>
+                    <h2>{{ matiere }}</h2>
+                    <p>Coefficient : {{ coef[matiere] }}</p>
+
+                    <ul>
+                        {% for note in liste_notes %}
+                            <li>{{ note }}/20</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+        {% else %}
+            <p>Aucune note enregistrée.</p>
+        {% endif %}
+    </main>
+</body>
+</html>
