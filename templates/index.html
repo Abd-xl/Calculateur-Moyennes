@@ -93,19 +93,19 @@
                         <ul class="dialog-notes">
                             {% for note in liste_notes %}
                                 <li class="dialog-note">
-                                    <span class="dialog-note__value">{{ note }}/20</span>
+                                    <span class="dialog-note__value">{{ note.note }}/{{ note.bareme }}</span>
 
                                     <form class="dialog-note__edit" method="POST" action="{{ url_for('modifier') }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
-                                        <input type="hidden" name="ancienne_note" value="{{ note }}">
+                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
 
                                         <input
                                             type="number"
                                             name="nouvelle_note"
                                             min="0"
-                                            max="20"
+                                            max="{{ note.bareme }}"
                                             step="0.01"
-                                            value="{{ note }}"
+                                            value="{{ note.note }}"
                                             aria-label="Nouvelle note"
                                             required
                                         >
@@ -115,7 +115,7 @@
 
                                     <form method="POST" action="{{ url_for('supprimer') }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
-                                        <input type="hidden" name="note" value="{{ note }}">
+                                        <input type="hidden" name="index" value="{{ loop.index0 }}">
                                         <button class="dialog-note__delete" type="submit">Supprimer</button>
                                     </form>
                                 </li>
