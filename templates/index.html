@@ -41,6 +41,14 @@
                 <span>{{ note }}/20</span>
 
                 <form method="POST">
+                    <input type="hidden" name="action" value="modifier">
+                    <input type="hidden" name="matiere" value="{{ matiere }}">
+                    <input type="hidden" name="ancienne_note" value="{{ note }}">
+                    <input type="number" name="nouvelle_note" min="0" max="20" step="0.01" placeholder="Nouvelle note" required>
+                    <button type="submit">Modifier</button>
+                </form>
+
+                <form method="POST">
                     <input type="hidden" name="action" value="supprimer">
                     <input type="hidden" name="matiere" value="{{ matiere }}">
                     <input type="hidden" name="note" value="{{ note }}">
