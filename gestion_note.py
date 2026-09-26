@@ -30,6 +30,15 @@ def ajouter_note(matiere, note, coefficient):
     sauvegarder()
 
 
+def supprimer_matiere(matiere):
+    if matiere not in notes:
+        raise ValueError("Cette matière n'existe pas.")
+
+    del notes[matiere]
+    del coef[matiere]
+    sauvegarder()
+
+
 def supprimer_note(matiere, note):
     if matiere not in notes:
         raise ValueError("Cette matière n'existe pas.")
