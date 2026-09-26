@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from gestion_note import ajouter_note, calculer_moyennes, supprimer_note, notes, coef
+from gestion_note import ajouter_note, calculer_moyennes, supprimer_matiere, supprimer_note, notes, coef
 from sauvegarde import charger
 
 app = Flask(__name__)
@@ -26,6 +26,11 @@ def accueil():
                 note = float(request.form["note"])
                 supprimer_note(matiere, note)
                 message = f"Note supprimée : {matiere} — {note}/20"
+
+            elif action == "supprimer_matiere":
+                matiere = request.form["matiere"]
+                supprimer_matiere(matiere)
+                message = f"Matière supprimée : {matiere}"
 
         except (TypeError, ValueError) as erreur:
             message = str(erreur)
