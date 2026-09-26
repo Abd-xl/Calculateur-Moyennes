@@ -27,10 +27,13 @@
 
     {% for matiere, liste_notes in notes.items() %}
         <h2>{{ matiere }} (coefficient {{ coef[matiere] }})</h2>
+        <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
 
         {% for note in liste_notes %}
             <p>{{ note }}/20</p>
         {% endfor %}
     {% endfor %}
+
+    <h2>Moyenne générale : {{ "%.2f"|format(moyenne_generale) }}/20</h2>
 </body>
 </html>
