@@ -39,7 +39,7 @@
 
                         <div class="note-grid">
                             {% for note in liste_notes %}
-                                <div class="note-item">{{ note }}/20</div>
+                                <div class="note-item">{{ note.note }}/{{ note.bareme }}</div>
                             {% endfor %}
                         </div>
                     </article>
