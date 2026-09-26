@@ -20,53 +20,85 @@
     </header>
 
     <main>
-        <section class="form-card">
-            {% if message %}
-                <div class="message">{{ message }}</div>
-            {% endif %}
+        {% if message %}
+            <section class="message">{{ message }}</section>
+        {% endif %}
 
-            <div class="form-choice">
-                <h2>Ajouter à une matière existante</h2>
-                {% if notes %}
-                    <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
-                        <input type="hidden" name="mode" value="existante">
+        <section class="section">
+            <h2 class="section-title">Ajouter à une matière existante</h2>
+
+            {% if notes %}
+                <div class="subject-picker">
+                    {% for matiere in notes %}
+                        <button
+                            class="subject-picker__item"
+                            type="button"
+                            onclick="document.getElementById('add-note-{{ loop.index }}').showModal()"
+                        >
+                            <span class="subject-picker__name">{{ matiere }}</span>
+                            <span class="subject-picker__meta">Coefficient {{ coef[matiere] }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="form-help">Aucune matière n'existe encore. Crée ta première matière ci-dessous.</p>
+            {% endif %}
+        </section>
+
+        {% for matiere in notes %}
+            <dialog class="add-note-dialog" id="add-note-{{ loop.index }}">
+                <div class="dialog-header">
+                    <div>
+                        <h2>{{ matiere }}</h2>
+                        <p class="dialog-meta">Coefficient {{ coef[matiere] }}</p>
+                    </div>
+
+                    <button
+                        class="dialog-close"
+                        type="button"
+                        aria-label="Fermer"
+                        onclick="document.getElementById('add-note-{{ loop.index }}').close()"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
+                    <input type="hidden" name="mode" value="existante">
+                    <input type="hidden" name="matiere_existante" value="{{ matiere }}">
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="note-{{ loop.index }}">Note</label>
+                            <input
+                                type="number"
+                                id="note-{{ loop.index }}"
+                                name="note"
+                                min="0"
+                                max="20"
+                                step="0.01"
+                                required
+                            >
+                        </div>
 
                         <div class="form-field">
-                            <label for="matiere_existante">Matière</label>
-                            <select id="matiere_existante" name="matiere_existante" required>
-                                {% for matiere in notes %}
-                                    <option value="{{ matiere }}">{{ matiere }} — coefficient {{ coef[matiere] }}</option>
-                                {% endfor %}
+                            <label for="bareme-{{ loop.index }}">Barème</label>
+                            <select id="bareme-{{ loop.index }}" name="bareme" required>
+                                <option value="20">/20</option>
+                                <option value="10">/10</option>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="form-row">
-                            <div class="form-field">
-                                <label for="note_existante">Note</label>
-                                <input type="number" id="note_existante" name="note" min="0" max="20" step="0.01" required>
-                            </div>
+                    <button class="form-submit" type="submit">Ajouter la note</button>
+                </form>
+            </dialog>
+        {% endfor %}
 
-                            <div class="form-field">
-                                <label for="bareme_existant">Barème</label>
-                                <select id="bareme_existant" name="bareme" required>
-                                    <option value="20">/20</option>
-                                    <option value="10">/10</option>
-                                </select>
-                            </div>
-                        </div>
+        <section class="section new-subject-section">
+            <h2 class="section-title">Créer une nouvelle matière</h2>
 
-                        <button class="form-submit" type="submit">Ajouter la note</button>
-                    </form>
-                {% else %}
-                    <p class="form-help">Aucune matière n'existe encore. Crée ta première matière ci-dessous.</p>
-                {% endif %}
-            </div>
-
-            <div class="form-divider"></div>
-
-            <div class="form-choice">
-                <h2>Créer une nouvelle matière</h2>
-
+            <div class="form-card">
                 <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
                     <input type="hidden" name="mode" value="nouvelle">
 
@@ -95,7 +127,7 @@
                         </select>
                     </div>
 
-                    <button class="form-submit" type="submit">Créer la matière et ajouter la note</button>
+                    <button class="form-submit" type="submit">Créer la matière</button>
                 </form>
             </div>
         </section>
