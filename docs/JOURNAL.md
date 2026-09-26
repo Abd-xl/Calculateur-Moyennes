@@ -256,3 +256,22 @@ L'affichage des notes avec `details` directement dans une ligne du tableau modif
 
 ### Prochaine étape
 Tester les actions de modification et de suppression depuis les fenêtres, puis commencer la mise en forme CSS.
+
+## 2026-09-26 — Ajout de notes plus flexible
+
+### Problèmes corrigés
+- Une note pouvait uniquement être saisie sur 20.
+- Ajouter une note à une matière existante obligeait à retaper son nom et son coefficient.
+- Des espaces superflus pouvaient créer une matière visuellement identique.
+
+### Correction
+- Le formulaire permet de choisir une matière existante.
+- Son coefficient est réutilisé automatiquement.
+- Une section séparée permet de créer une nouvelle matière.
+- Les barèmes /10 et /20 sont acceptés.
+- Les notes sont normalisées sur /20 dans les données internes.
+- Les espaces superflus et les différences de casse sont ignorés lors de la recherche d'une matière existante.
+
+### Prochaine étape
+Tester les nouveaux cas avant de poursuivre vers le tableur.
+
