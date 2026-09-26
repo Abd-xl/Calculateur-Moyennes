@@ -1,22 +1,24 @@
 from flask import Flask, render_template, request
+from gestion_note import ajouter_note, notes
+from sauvegarde import charger
 
 app = Flask(__name__)
 
 
 @app.route("/", methods=["GET", "POST"])
 def accueil():
-    notes = {
-        "Maths": [15, 14, 16],
-        "Physique": [17, 15],
-        "SVT": [18, 16, 17]
-    }
-
+    charger()
     message = None
 
     if request.method == "POST":
         matiere = request.form["matiere"]
-        note = request.form["note"]
-        message = f"Reçu : {matiere} — {note}/20"
+        note = float(request.form["note"])
+
+        try:
+            ajouter_note(matiere, note)
+            message = f"Note ajoutée : {matiere} — {note}/20"
+        except (TypeError, ValueError) as erreur:
+            message = str(erreur)
 
     return render_template("index.html", notes=notes, message=message)
 
