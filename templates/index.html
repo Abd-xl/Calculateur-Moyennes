@@ -11,17 +11,6 @@
     </header>
 
     <main>
-        <section>
-            <h2>Moyenne générale</h2>
-            <p>{{ "%.2f"|format(moyenne_generale) }}/20</p>
-        </section>
-
-        <nav aria-label="Actions principales">
-            <a href="{{ url_for('ajouter') }}">Ajouter une note</a>
-            <a href="{{ url_for('tableur') }}">Remplir le tableur</a>
-            <a href="{{ url_for('liste_notes') }}">Lister toutes les notes</a>
-        </nav>
-
         {% if message %}
             <section>
                 <p>{{ message }}</p>
@@ -38,61 +27,103 @@
                             <th scope="col">Matière</th>
                             <th scope="col">Moyenne</th>
                             <th scope="col">Coefficient</th>
-                            <th scope="col">Gestion</th>
+                            <th scope="col">Modifier</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         {% for matiere, liste_notes in notes.items() %}
                             <tr>
-                                <td>
-                                    <details>
-                                        <summary>{{ matiere }}</summary>
-
-                                        <ul>
-                                            {% for note in liste_notes %}
-                                                <li>
-                                                    {{ note }}/20
-
-                                                    <form method="POST" action="{{ url_for('modifier') }}">
-                                                        <input type="hidden" name="matiere" value="{{ matiere }}">
-                                                        <input type="hidden" name="ancienne_note" value="{{ note }}">
-                                                        <input
-                                                            type="number"
-                                                            name="nouvelle_note"
-                                                            min="0"
-                                                            max="20"
-                                                            step="0.01"
-                                                            placeholder="Nouvelle note"
-                                                            required
-                                                        >
-                                                        <button type="submit">Modifier</button>
-                                                    </form>
-
-                                                    <form method="POST" action="{{ url_for('supprimer') }}">
-                                                        <input type="hidden" name="matiere" value="{{ matiere }}">
-                                                        <input type="hidden" name="note" value="{{ note }}">
-                                                        <button type="submit">Supprimer</button>
-                                                    </form>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </details>
-                                </td>
-
+                                <td>{{ matiere }}</td>
                                 <td>{{ "%.2f"|format(moyennes[matiere]) }}/20</td>
                                 <td>{{ coef[matiere] }}</td>
-
                                 <td>
-                                    <a href="{{ url_for('liste_notes') }}">Gérer</a>
+                                    <button
+                                        type="button"
+                                        onclick="document.getElementById('notes-{{ loop.index }}').showModal()"
+                                    >
+                                        Modifier
+                                    </button>
                                 </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
+                {% for matiere, liste_notes in notes.items() %}
+                    <dialog id="notes-{{ loop.index }}">
+                        <h2>{{ matiere }}</h2>
+                        <p>Coefficient : {{ coef[matiere] }}</p>
+                        <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
+
+                        <h3>Notes</h3>
+
+                        <ul>
+                            {% for note in liste_notes %}
+                                <li>
+                                    <span>{{ note }}/20</span>
+
+                                    <form method="POST" action="{{ url_for('modifier') }}">
+                                        <input type="hidden" name="matiere" value="{{ matiere }}">
+                                        <input type="hidden" name="ancienne_note" value="{{ note }}">
+
+                                        <label>
+                                            Nouvelle note :
+                                            <input
+                                                type="number"
+                                                name="nouvelle_note"
+                                                min="0"
+                                                max="20"
+                                                step="0.01"
+                                                required
+                                            >
+                                        </label>
+
+                                        <button type="submit">Modifier</button>
+                                    </form>
+
+                                    <form method="POST" action="{{ url_for('supprimer') }}">
+                                        <input type="hidden" name="matiere" value="{{ matiere }}">
+                                        <input type="hidden" name="note" value="{{ note }}">
+                                        <button type="submit">Supprimer</button>
+                                    </form>
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        <form method="POST" action="{{ url_for('supprimer_matiere_route') }}">
+                            <input type="hidden" name="matiere" value="{{ matiere }}">
+                            <button type="submit">Supprimer la matière</button>
+                        </form>
+
+                        <button
+                            type="button"
+                            onclick="document.getElementById('notes-{{ loop.index }}').close()"
+                        >
+                            Fermer
+                        </button>
+                    </dialog>
+                {% endfor %}
             {% else %}
                 <p>Aucune matière enregistrée.</p>
             {% endif %}
+        </section>
+
+        <section>
+            <a href="{{ url_for('tableur') }}">Remplir le tableur</a>
+        </section>
+
+        <section>
+            <h2>Moyenne générale</h2>
+            <p>{{ "%.2f"|format(moyenne_generale) }}/20</p>
+        </section>
+
+        <section>
+            <a href="{{ url_for('liste_notes') }}">Lister toutes les notes</a>
+        </section>
+
+        <section>
+            <a href="{{ url_for('ajouter') }}">Ajouter une note</a>
         </section>
     </main>
 </body>
