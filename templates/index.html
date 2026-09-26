@@ -30,6 +30,12 @@
         <h2>{{ matiere }} (coefficient {{ coef[matiere] }})</h2>
         <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
 
+        <form method="POST">
+            <input type="hidden" name="action" value="supprimer_matiere">
+            <input type="hidden" name="matiere" value="{{ matiere }}">
+            <button type="submit">Supprimer la matière</button>
+        </form>
+
         {% for note in liste_notes %}
             <div>
                 <span>{{ note }}/20</span>
