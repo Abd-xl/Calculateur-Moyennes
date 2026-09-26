@@ -79,11 +79,15 @@ def tableur():
 def supprimer():
     try:
         matiere = request.form["matiere"]
-        note = float(request.form["note"])
+        index = int(request.form["index"])
+        note = notes[matiere][index]
 
-        supprimer_note(matiere, note)
+        supprimer_note(matiere, index)
 
-        message = f"Note supprimée : {matiere} — {note}/20"
+        message = (
+            f"Note supprimée : {matiere} — "
+            f"{note['note']:g}/{note['bareme']}"
+        )
         return redirect(url_for("accueil", message=message))
 
     except (TypeError, ValueError) as erreur:
@@ -94,15 +98,12 @@ def supprimer():
 def modifier():
     try:
         matiere = request.form["matiere"]
-        ancienne_note = float(request.form["ancienne_note"])
+        index = int(request.form["index"])
         nouvelle_note = float(request.form["nouvelle_note"])
 
-        modifier_note(matiere, ancienne_note, nouvelle_note)
+        modifier_note(matiere, index, nouvelle_note)
 
-        message = (
-            f"Note modifiée : {matiere} — "
-            f"{ancienne_note} → {nouvelle_note}/20"
-        )
+        message = f"Note modifiée : {matiere} — {nouvelle_note:g}"
         return redirect(url_for("accueil", message=message))
 
     except (TypeError, ValueError) as erreur:
