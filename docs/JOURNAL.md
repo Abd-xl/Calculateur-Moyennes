@@ -166,4 +166,44 @@ Interface terminal ┘
 Une même opération métier ne doit pas être réécrite pour chaque interface. Le Web et le terminal peuvent appeler la même fonction Python, ce qui réduit les bugs et évite que deux versions du programme divergent.
 
 ### Prochaine étape
-Tester le fonctionnement Web après ce nettoyage, puis commencer à découper progressivement `app.py` pour que chaque route/action ait une responsabilité claire avant de passer au CSS responsive.
+Séparer les actions Web en routes Flask dédiées, puis préparer l'interface responsive.
+
+## 2026-09-26 — Routes Flask dédiées
+
+### Problème
+La route `/` recevait à la fois l'affichage de la page et toutes les actions POST. Un champ caché `action` permettait de choisir entre plusieurs blocs `if/elif`.
+
+### Correction
+Les actions Web ont maintenant chacune leur propre route :
+- `GET /` : affiche la page.
+- `POST /ajouter` : ajoute une note.
+- `POST /modifier` : modifie une note.
+- `POST /supprimer` : supprime une note.
+- `POST /supprimer-matiere` : supprime une matière.
+
+Les formulaires HTML utilisent directement l'attribut `action` correspondant à leur route.
+
+### Nouveau concept : POST → Redirect → GET
+Après une opération réussie, Flask redirige vers `/` avec un message.
+
+Cela évite qu'un simple rechargement de la page renvoie une nouvelle fois le même formulaire POST. C'est un modèle courant des applications Web appelé **POST-Redirect-GET (PRG)**.
+
+### Rôle de `afficher_page()`
+La fonction `afficher_page()` prépare les moyennes et appelle `render_template()`. Les différentes routes peuvent donc réutiliser le même code d'affichage sans le recopier.
+
+### Architecture actuelle
+
+```
+Navigateur
+    ↓
+Routes Flask
+    ↓
+Fonctions métier
+    ↓
+sauvegarde.py
+    ↓
+notes.json
+```
+
+### Prochaine étape
+Tester toutes les actions après ce changement, puis commencer le CSS responsive pour l'utilisation sur iPhone.
