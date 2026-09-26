@@ -62,6 +62,47 @@ main {
     margin-bottom: 28px;
 }
 
+.average-section {
+    margin: 12px 0 28px;
+    text-align: center;
+}
+
+.average-section__label {
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.average-section__value {
+    margin: 0;
+    font-size: clamp(2.4rem, 7vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+}
+
+.action-section {
+    display: flex;
+    justify-content: center;
+}
+
+.primary-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    width: min(360px, 100%);
+    padding: 14px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-weight: 650;
+}
+
+.primary-action:hover,
+.action:hover {
+    background: var(--surface-hover);
+}
+
 .section-title {
     margin: 0 0 12px;
     color: var(--text-muted);
@@ -71,50 +112,57 @@ main {
     text-transform: uppercase;
 }
 
-.average-card {
-    padding: 24px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-}
-
-.average-card__value {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 700;
-}
-
-.subject-list {
-    display: grid;
-    gap: 8px;
-}
-
-.subject {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 20px;
-    padding: 15px 18px;
+.table-container {
+    overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface);
-    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.subject:hover {
+.subjects-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.subjects-table th,
+.subjects-table td {
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.subjects-table th {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.subjects-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.subjects-table tbody tr:hover {
     background: var(--surface-hover);
-    border-color: #343b48;
 }
 
-.subject__name {
-    min-width: 0;
+.subject-name {
     font-weight: 600;
 }
 
-.subject__average,
-.subject__coef {
-    color: var(--text-muted);
-    white-space: nowrap;
+.table-action {
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.table-action:hover {
+    border-color: var(--accent);
+    color: var(--accent-hover);
 }
 
 .action-list {
@@ -130,10 +178,6 @@ main {
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface);
-}
-
-.action:hover {
-    background: var(--surface-hover);
 }
 
 .action__label {
@@ -191,19 +235,18 @@ dialog li {
         width: calc(100% - 20px);
     }
 
-    .subject {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px 14px;
+    .subjects-table th,
+    .subjects-table td {
+        padding: 12px 10px;
     }
 
-    .subject__coef {
-        grid-column: 2;
-        grid-row: 1;
+    .subjects-table th:nth-child(2),
+    .subjects-table td:nth-child(2) {
+        white-space: nowrap;
     }
 
-    .subject__average {
-        grid-column: 1;
-        grid-row: 2;
+    .table-action {
+        padding: 7px 9px;
     }
 
     .action {
