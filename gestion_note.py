@@ -2,47 +2,43 @@ from sauvegarde import sauvegarder
 from sauvegarde import notes, coef
 
 
+def convertir_sur_20(note):
+    return note["note"] * 20 / note["bareme"]
+
+
 def calculer_moyenne(liste_notes):
     if len(liste_notes) == 0:
         return 0
-    return sum(liste_notes) / len(liste_notes)
+    return sum(convertir_sur_20(note) for note in liste_notes) / len(liste_notes)
 
 
 def _trouver_matiere(matiere):
     nom = matiere.strip()
-
     if not nom:
         return None
-
     if nom in notes:
         return nom
-
     for nom_existant in notes:
         if nom_existant.strip().casefold() == nom.casefold():
             return nom_existant
-
     return None
 
 
 def ajouter_note(matiere, note, coefficient, bareme=20):
     if not matiere.strip():
         raise ValueError("La matière ne peut pas être vide.")
-
     if not isinstance(note, (int, float)):
         raise TypeError("La note doit être un nombre.")
     if bareme not in (10, 20):
         raise ValueError("Le barème doit être 10 ou 20.")
-
     if not 0 <= note <= bareme:
         raise ValueError(f"La note doit être comprise entre 0 et {bareme}.")
-
     if not isinstance(coefficient, int):
         raise TypeError("Le coefficient doit être un entier.")
     if coefficient <= 0:
         raise ValueError("Le coefficient doit être supérieur à 0.")
 
     matiere_existante = _trouver_matiere(matiere)
-
     if matiere_existante is not None:
         if coef[matiere_existante] != coefficient:
             raise ValueError(
@@ -50,52 +46,47 @@ def ajouter_note(matiere, note, coefficient, bareme=20):
             )
         matiere = matiere_existante
     else:
+        matiere = matiere.strip()
         notes[matiere] = []
         coef[matiere] = coefficient
 
-    note_sur_20 = note * 20 / bareme
-    notes[matiere].append(note_sur_20)
+    notes[matiere].append({"note": note, "bareme": bareme})
     sauvegarder()
 
 
-def modifier_note(matiere, ancienne_note, nouvelle_note):
+def modifier_note(matiere, index, nouvelle_note):
     matiere = _trouver_matiere(matiere)
-
     if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
-
-    if not 0 <= nouvelle_note <= 20:
-        raise ValueError("La nouvelle note doit être comprise entre 0 et 20.")
-
-    if ancienne_note not in notes[matiere]:
+    if not isinstance(index, int) or not 0 <= index < len(notes[matiere]):
         raise ValueError("Cette note n'existe pas dans cette matière.")
 
-    index = notes[matiere].index(ancienne_note)
-    notes[matiere][index] = nouvelle_note
+    bareme = notes[matiere][index]["bareme"]
+    if not 0 <= nouvelle_note <= bareme:
+        raise ValueError(
+            f"La nouvelle note doit être comprise entre 0 et {bareme}."
+        )
+
+    notes[matiere][index]["note"] = nouvelle_note
     sauvegarder()
 
 
 def supprimer_matiere(matiere):
     matiere = _trouver_matiere(matiere)
-
     if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
-
     del notes[matiere]
     del coef[matiere]
     sauvegarder()
 
 
-def supprimer_note(matiere, note):
+def supprimer_note(matiere, index):
     matiere = _trouver_matiere(matiere)
-
     if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
-
-    if note not in notes[matiere]:
+    if not isinstance(index, int) or not 0 <= index < len(notes[matiere]):
         raise ValueError("Cette note n'existe pas dans cette matière.")
-
-    notes[matiere].remove(note)
+    notes[matiere].pop(index)
     sauvegarder()
 
 
@@ -110,17 +101,11 @@ def calculer_moyennes():
         somme_ponderee += moyenne * coef[matiere]
         somme_coef += coef[matiere]
 
-    moyenne_generale = (
-        somme_ponderee / somme_coef
-        if somme_coef > 0
-        else 0
-    )
-
+    moyenne_generale = somme_ponderee / somme_coef if somme_coef > 0 else 0
     return resultats, moyenne_generale
 
 
 # Fonctions de l'ancienne interface terminal.
-# Elles utilisent maintenant les fonctions métier ci-dessus.
 
 
 def ajouter_notes():
@@ -130,7 +115,6 @@ def ajouter_notes():
             break
 
         matiere_existante = _trouver_matiere(matiere)
-
         if matiere_existante is not None:
             matiere = matiere_existante
             coefficient = coef[matiere]
@@ -172,7 +156,7 @@ def voir_notes():
     for matiere in notes:
         print(f"\n  {matiere} :")
         for note in notes[matiere]:
-            print(f"  {note}/20")
+            print(f"  {note['note']}/{note['bareme']}")
 
 
 def voir_moyenne():
@@ -181,11 +165,9 @@ def voir_moyenne():
         return
 
     moyennes, moyenne_generale = calculer_moyennes()
-
     print("\n--- Moyennes par matiere ---")
     for matiere, moyenne in moyennes.items():
         print(f"  {matiere} (coeff. {coef[matiere]}) : {moyenne:.2f}/20")
-
     print(f"\n  Moyenne Generale : {moyenne_generale:.2f}/20")
 
 
@@ -196,7 +178,6 @@ def menu_supprimer_matiere():
             print(f"  {matiere}")
 
         matiere = input("\nQuelle matiere ? (ou fin pour annuler) : ")
-
         if _trouver_matiere(matiere) is not None:
             try:
                 supprimer_matiere(matiere)
@@ -212,32 +193,22 @@ def menu_supprimer_matiere():
 
 def supprimer_notes():
     voir_notes()
-
     while True:
         matiere = input("\nDans quelle matiere ? (ou fin) : ")
-
         if matiere.lower() == "fin":
             break
-
         if _trouver_matiere(matiere) is None:
             print(f"{matiere} n'existe pas")
             continue
 
         while True:
             try:
-                supp = float(
-                    input(f"Quelle note de {matiere} veux-tu supprimer ? ")
-                )
-            except ValueError:
-                print("Veuillez entrer un nombre valide.")
-                continue
-
-            try:
-                supprimer_note(matiere, supp)
-                print(f"{supp} is removed")
+                index = int(input("Index de la note à supprimer : "))
+                supprimer_note(matiere, index)
+                print("Note supprimée")
                 voir_notes()
                 break
-            except ValueError as erreur:
+            except (TypeError, ValueError) as erreur:
                 print(erreur)
 
 
@@ -250,7 +221,6 @@ def menu_modifier():
         print("4. Retour")
 
         choix2 = input("\nVotre choix ? : ")
-
         if choix2 == "1":
             menu_supprimer_matiere()
         elif choix2 == "2":
@@ -258,10 +228,10 @@ def menu_modifier():
         elif choix2 == "3":
             matiere = input("Matiere : ")
             try:
-                ancienne_note = float(input("Ancienne note : "))
+                index = int(input("Index de la note : "))
                 nouvelle_note = float(input("Nouvelle note : "))
-                modifier_note(matiere, ancienne_note, nouvelle_note)
-                print(f"Note modifiee : {ancienne_note} -> {nouvelle_note}")
+                modifier_note(matiere, index, nouvelle_note)
+                print("Note modifiee.")
             except (TypeError, ValueError) as erreur:
                 print(erreur)
         elif choix2 == "4":
