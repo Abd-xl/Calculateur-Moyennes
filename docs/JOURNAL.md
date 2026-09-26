@@ -129,3 +129,18 @@ Une matière est représentée par deux structures liées : `notes[matiere]` et 
 
 ### Prochaine étape
 Implémenter la modification d'une note avec un formulaire Web.
+
+
+## 2026-09-26 — Modification d'une note depuis le Web
+
+### Ce qui a changé
+- Ajout de `modifier_note(matiere, ancienne_note, nouvelle_note)`.
+- La fonction vérifie la matière, l'existence de l'ancienne note et la validité de la nouvelle note.
+- Le formulaire Web transmet l'ancienne et la nouvelle valeur.
+- La note est remplacée dans la liste puis sauvegardée.
+
+### Compréhension
+Pour modifier une valeur dans une liste, il faut d'abord identifier l'ancienne valeur. Python utilise son index pour remplacer uniquement cette occurrence.
+
+### Prochaine étape
+Faire un premier nettoyage de l'architecture web, notamment séparer les routes/actions et préparer une interface plus adaptée à l'iPhone.
