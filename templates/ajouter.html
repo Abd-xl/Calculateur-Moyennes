@@ -25,26 +25,79 @@
                 <div class="message">{{ message }}</div>
             {% endif %}
 
-            <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
-                <div class="form-field">
-                    <label for="matiere">Matière</label>
-                    <input type="text" id="matiere" name="matiere" required>
-                </div>
+            <div class="form-choice">
+                <h2>Ajouter à une matière existante</h2>
+                {% if notes %}
+                    <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
+                        <input type="hidden" name="mode" value="existante">
 
-                <div class="form-row">
+                        <div class="form-field">
+                            <label for="matiere_existante">Matière</label>
+                            <select id="matiere_existante" name="matiere_existante" required>
+                                {% for matiere in notes %}
+                                    <option value="{{ matiere }}">{{ matiere }} — coefficient {{ coef[matiere] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label for="note_existante">Note</label>
+                                <input type="number" id="note_existante" name="note" min="0" max="20" step="0.01" required>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="bareme_existant">Barème</label>
+                                <select id="bareme_existant" name="bareme" required>
+                                    <option value="20">/20</option>
+                                    <option value="10">/10</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="form-submit" type="submit">Ajouter la note</button>
+                    </form>
+                {% else %}
+                    <p class="form-help">Aucune matière n'existe encore. Crée ta première matière ci-dessous.</p>
+                {% endif %}
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-choice">
+                <h2>Créer une nouvelle matière</h2>
+
+                <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
+                    <input type="hidden" name="mode" value="nouvelle">
+
                     <div class="form-field">
-                        <label for="coefficient">Coefficient</label>
-                        <input type="number" id="coefficient" name="coefficient" min="1" step="1" required>
+                        <label for="nouvelle_matiere">Matière</label>
+                        <input type="text" id="nouvelle_matiere" name="nouvelle_matiere" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="coefficient">Coefficient</label>
+                            <input type="number" id="coefficient" name="coefficient" min="1" step="1" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="note_nouvelle">Note</label>
+                            <input type="number" id="note_nouvelle" name="note" min="0" max="20" step="0.01" required>
+                        </div>
                     </div>
 
                     <div class="form-field">
-                        <label for="note">Note</label>
-                        <input type="number" id="note" name="note" min="0" max="20" step="0.01" required>
+                        <label for="bareme_nouveau">Barème</label>
+                        <select id="bareme_nouveau" name="bareme" required>
+                            <option value="20">/20</option>
+                            <option value="10">/10</option>
+                        </select>
                     </div>
-                </div>
 
-                <button class="form-submit" type="submit">Ajouter la note</button>
-            </form>
+                    <button class="form-submit" type="submit">Créer la matière et ajouter la note</button>
+                </form>
+            </div>
         </section>
     </main>
 </body>
