@@ -38,7 +38,7 @@
                             <th scope="col">Matière</th>
                             <th scope="col">Moyenne</th>
                             <th scope="col">Coefficient</th>
-                            <th scope="col">Modifier</th>
+                            <th scope="col">Gestion</th>
                         </tr>
                     </thead>
 
@@ -84,7 +84,7 @@
                                 <td>{{ coef[matiere] }}</td>
 
                                 <td>
-                                    <a href="{{ url_for('ajouter') }}">Modifier</a>
+                                    <a href="{{ url_for('liste_notes') }}">Gérer</a>
                                 </td>
                             </tr>
                         {% endfor %}
