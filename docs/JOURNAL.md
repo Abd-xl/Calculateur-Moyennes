@@ -234,3 +234,25 @@ La page d'accueil sert principalement de tableau de bord. Les opérations de sai
 
 ### Prochaine étape
 Définir précisément le fonctionnement du « Remplir le tableur », puis commencer le CSS responsive.
+
+
+## 2026-09-26 — Tableau fixe et gestion des notes séparée
+
+### Problème
+L'affichage des notes avec `details` directement dans une ligne du tableau modifiait la hauteur de cette ligne et rendait le tableau visuellement instable.
+
+### Correction
+- Le tableau des matières reste maintenant compact et fixe.
+- Le bouton « Modifier » ouvre une fenêtre `dialog` indépendante pour la matière.
+- Les notes, leur modification et leur suppression sont gérées dans cette fenêtre sans modifier la structure du tableau.
+- La suppression d'une matière reste disponible depuis cette fenêtre.
+
+### Ordre de la page d'accueil
+1. Tableau des matières.
+2. « Remplir le tableur ».
+3. Moyenne générale.
+4. « Lister toutes les notes ».
+5. « Ajouter une note ».
+
+### Prochaine étape
+Tester les actions de modification et de suppression depuis les fenêtres, puis commencer la mise en forme CSS.
