@@ -72,56 +72,70 @@
 
                 {% for matiere, liste_notes in notes.items() %}
                     <dialog id="notes-{{ loop.index }}">
-                        <h2>{{ matiere }}</h2>
-                        <p>Coefficient : {{ coef[matiere] }}</p>
-                        <p>Moyenne : {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
+                        <div class="dialog-header">
+                            <div>
+                                <h2>{{ matiere }}</h2>
+                                <p class="dialog-meta">Coefficient {{ coef[matiere] }} · Moyenne {{ "%.2f"|format(moyennes[matiere]) }}/20</p>
+                            </div>
 
-                        <h3>Notes</h3>
+                            <button
+                                class="dialog-close"
+                                type="button"
+                                aria-label="Fermer"
+                                onclick="document.getElementById('notes-{{ loop.index }}').close()"
+                            >
+                                ×
+                            </button>
+                        </div>
 
-                        <ul>
+                        <h3 class="dialog-section-title">Notes</h3>
+
+                        <ul class="dialog-notes">
                             {% for note in liste_notes %}
-                                <li>
-                                    <span>{{ note }}/20</span>
+                                <li class="dialog-note">
+                                    <span class="dialog-note__value">{{ note }}/20</span>
 
-                                    <form method="POST" action="{{ url_for('modifier') }}">
+                                    <form class="dialog-note__edit" method="POST" action="{{ url_for('modifier') }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
                                         <input type="hidden" name="ancienne_note" value="{{ note }}">
 
-                                        <label>
-                                            Nouvelle note :
-                                            <input
-                                                type="number"
-                                                name="nouvelle_note"
-                                                min="0"
-                                                max="20"
-                                                step="0.01"
-                                                required
-                                            >
-                                        </label>
+                                        <input
+                                            type="number"
+                                            name="nouvelle_note"
+                                            min="0"
+                                            max="20"
+                                            step="0.01"
+                                            value="{{ note }}"
+                                            aria-label="Nouvelle note"
+                                            required
+                                        >
 
-                                        <button type="submit">Modifier</button>
+                                        <button class="dialog-button" type="submit">Valider</button>
                                     </form>
 
                                     <form method="POST" action="{{ url_for('supprimer') }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
                                         <input type="hidden" name="note" value="{{ note }}">
-                                        <button type="submit">Supprimer</button>
+                                        <button class="dialog-note__delete" type="submit">Supprimer</button>
                                     </form>
                                 </li>
                             {% endfor %}
                         </ul>
 
-                        <form method="POST" action="{{ url_for('supprimer_matiere_route') }}">
-                            <input type="hidden" name="matiere" value="{{ matiere }}">
-                            <button type="submit">Supprimer la matière</button>
-                        </form>
+                        <div class="dialog-footer">
+                            <form method="POST" action="{{ url_for('supprimer_matiere_route') }}">
+                                <input type="hidden" name="matiere" value="{{ matiere }}">
+                                <button class="dialog-danger" type="submit">Supprimer la matière</button>
+                            </form>
 
-                        <button
-                            type="button"
-                            onclick="document.getElementById('notes-{{ loop.index }}').close()"
-                        >
-                            Fermer
-                        </button>
+                            <button
+                                class="dialog-button"
+                                type="button"
+                                onclick="document.getElementById('notes-{{ loop.index }}').close()"
+                            >
+                                Fermer
+                            </button>
+                        </div>
                     </dialog>
                 {% endfor %}
             {% else %}
