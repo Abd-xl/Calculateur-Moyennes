@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from gestion_note import ajouter_note, calculer_moyennes, notes, coef
+from gestion_note import ajouter_note, calculer_moyennes, supprimer_note, notes, coef
 from sauvegarde import charger
 
 app = Flask(__name__)
@@ -11,13 +11,22 @@ def accueil():
     message = None
 
     if request.method == "POST":
-        matiere = request.form["matiere"]
+        action = request.form.get("action")
 
         try:
-            note = float(request.form["note"])
-            coefficient = int(request.form["coefficient"])
-            ajouter_note(matiere, note, coefficient)
-            message = f"Note ajoutée : {matiere} — {note}/20"
+            if action == "ajouter":
+                matiere = request.form["matiere"]
+                note = float(request.form["note"])
+                coefficient = int(request.form["coefficient"])
+                ajouter_note(matiere, note, coefficient)
+                message = f"Note ajoutée : {matiere} — {note}/20"
+
+            elif action == "supprimer":
+                matiere = request.form["matiere"]
+                note = float(request.form["note"])
+                supprimer_note(matiere, note)
+                message = f"Note supprimée : {matiere} — {note}/20"
+
         except (TypeError, ValueError) as erreur:
             message = str(erreur)
 
