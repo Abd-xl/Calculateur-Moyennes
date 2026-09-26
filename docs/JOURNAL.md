@@ -99,3 +99,18 @@ Une requête HTTP ne doit pas reconstruire inutilement l'état de l'application.
 
 ### Limite connue
 Cette architecture avec des variables globales et un fichier JSON reste adaptée à un petit projet local. Elle devra évoluer vers une vraie couche de persistance, probablement SQLite puis PostgreSQL, lorsque le projet deviendra plus sérieux ou multi-utilisateur.
+
+
+## 2026-09-26 — Suppression d'une note depuis le Web
+
+### Ce qui a changé
+- Ajout de `supprimer_note(matiere, note)` dans `gestion_note.py`.
+- Le formulaire d'ajout et les formulaires de suppression utilisent maintenant POST avec un champ `action`.
+- Chaque note affichée possède un bouton de suppression.
+- La suppression passe par la même logique métier que le reste du programme et déclenche la sauvegarde JSON.
+
+### Compréhension
+Un formulaire HTML peut envoyer différentes actions à la même route. Flask lit `request.form["action"]` pour savoir quelle opération effectuer, puis appelle la fonction Python correspondante.
+
+### Prochaine étape
+Ajouter la suppression d'une matière, puis aborder la modification d'une note.
