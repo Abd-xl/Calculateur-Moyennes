@@ -46,3 +46,22 @@ Nous avons commencé à séparer l'interface de la logique métier. `gestion_not
 
 ### Prochaine étape
 Améliorer la validation des données reçues par Flask, puis utiliser correctement les coefficients et la structure réelle du calculateur.
+
+
+## 2026-09-26 — Formulaire matière + coefficient + note
+
+### Ce qui a changé
+- Le formulaire web reçoit maintenant une matière, un coefficient et une note.
+- `ajouter_note()` accepte ces trois données.
+- Si la matière n'existe pas, elle est créée avec son coefficient.
+- Si elle existe déjà, son coefficient doit rester identique.
+- Les notes sont toujours enregistrées via `sauvegarder()`.
+
+### Flux
+Formulaire HTML → POST → `request.form` → conversion des types → `ajouter_note()` → `notes` / `coef` → JSON.
+
+### Compréhension
+Flask est responsable de recevoir et convertir les données du formulaire. La logique de validation et de modification des données commence à vivre dans `gestion_note.py`.
+
+### Prochaine étape
+Calculer et afficher les moyennes depuis les vraies données, puis supprimer progressivement les données de démonstration.
