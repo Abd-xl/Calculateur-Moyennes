@@ -4,17 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remplir le tableur</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header>
-        <h1>Remplir le tableur</h1>
-        <a href="{{ url_for('accueil') }}">Retour</a>
+    <header class="app-header">
+        <div class="app-header__inner">
+            <div class="page-header">
+                <div>
+                    <p class="page-eyebrow">Saisie rapide</p>
+                    <h1>Remplir le tableur</h1>
+                </div>
+                <a class="back-action" href="{{ url_for('accueil') }}">← Accueil</a>
+            </div>
+        </div>
     </header>
 
     <main>
-        <p>
-            Cette page accueillera le mode de saisie rapide des matières et des notes.
-        </p>
+        <section class="empty-state">
+            <h2>Tableur à venir</h2>
+            <p>Cette page accueillera le mode de saisie rapide des matières et des notes.</p>
+        </section>
     </main>
 </body>
 </html>
