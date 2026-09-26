@@ -207,3 +207,30 @@ notes.json
 
 ### Prochaine étape
 Tester toutes les actions après ce changement, puis commencer le CSS responsive pour l'utilisation sur iPhone.
+
+
+## 2026-09-26 — Première structure de l'interface cible
+
+### Objectif
+Adapter la page d'accueil à la maquette définie pour l'application.
+
+### Ce qui a changé
+- La moyenne générale est placée en tête de page.
+- Ajout de trois accès principaux :
+  - ajouter une note ;
+  - remplir le tableur ;
+  - afficher toutes les notes.
+- Les matières sont maintenant présentées dans un tableau avec :
+  - matière ;
+  - moyenne ;
+  - coefficient ;
+  - gestion.
+- Cliquer sur une matière permet d'afficher ses notes avec l'élément HTML `details`.
+- Création des pages `ajouter.html`, `notes.html` et `tableur.html`.
+- `app.py` possède maintenant les routes GET correspondantes.
+
+### Décision
+La page d'accueil sert principalement de tableau de bord. Les opérations de saisie et les vues détaillées sont progressivement déplacées vers des pages dédiées.
+
+### Prochaine étape
+Définir précisément le fonctionnement du « Remplir le tableur », puis commencer le CSS responsive.
