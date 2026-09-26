@@ -29,7 +29,6 @@ Aucune logique de notes n'a encore été modifiée.
 ### Prochaine étape
 Faire passer une première donnée Python vers Jinja avec une variable, puis l'afficher dans la page avec `{{ ... }}`.
 
-
 ## 2026-09-26 — Première réutilisation du cœur Python
 
 ### Ce qui a changé
@@ -46,7 +45,6 @@ Nous avons commencé à séparer l'interface de la logique métier. `gestion_not
 
 ### Prochaine étape
 Améliorer la validation des données reçues par Flask, puis utiliser correctement les coefficients et la structure réelle du calculateur.
-
 
 ## 2026-09-26 — Formulaire matière + coefficient + note
 
@@ -66,7 +64,6 @@ Flask est responsable de recevoir et convertir les données du formulaire. La lo
 ### Prochaine étape
 Calculer et afficher les moyennes depuis les vraies données, puis supprimer progressivement les données de démonstration.
 
-
 ## 2026-09-26 — Calcul des moyennes dans la couche métier
 
 ### Ce qui a changé
@@ -84,7 +81,6 @@ Le HTML est responsable de l'affichage. Les calculs restent en Python : cela év
 ### Prochaine étape
 Tester et renforcer le chargement des données, puis améliorer progressivement l'interface et les opérations de modification/suppression.
 
-
 ## 2026-09-26 — Chargement des données au démarrage
 
 ### Problème
@@ -100,7 +96,6 @@ Une requête HTTP ne doit pas reconstruire inutilement l'état de l'application.
 ### Limite connue
 Cette architecture avec des variables globales et un fichier JSON reste adaptée à un petit projet local. Elle devra évoluer vers une vraie couche de persistance, probablement SQLite puis PostgreSQL, lorsque le projet deviendra plus sérieux ou multi-utilisateur.
 
-
 ## 2026-09-26 — Suppression d'une note depuis le Web
 
 ### Ce qui a changé
@@ -114,7 +109,6 @@ Un formulaire HTML peut envoyer différentes actions à la même route. Flask li
 
 ### Prochaine étape
 Ajouter la suppression d'une matière, puis aborder la modification d'une note.
-
 
 ## 2026-09-26 — Suppression d'une matière depuis le Web
 
@@ -130,7 +124,6 @@ Une matière est représentée par deux structures liées : `notes[matiere]` et 
 ### Prochaine étape
 Implémenter la modification d'une note avec un formulaire Web.
 
-
 ## 2026-09-26 — Modification d'une note depuis le Web
 
 ### Ce qui a changé
@@ -144,3 +137,33 @@ Pour modifier une valeur dans une liste, il faut d'abord identifier l'ancienne v
 
 ### Prochaine étape
 Faire un premier nettoyage de l'architecture web, notamment séparer les routes/actions et préparer une interface plus adaptée à l'iPhone.
+
+## 2026-09-26 — Nettoyage de `gestion_note.py`
+
+### Problème trouvé
+La fonction `supprimer_matiere()` existait deux fois. En Python, la deuxième définition remplace la première. La version destinée au Web était donc écrasée par l'ancienne version qui demandait des `input()`.
+
+C'était un vrai risque : l'appel de Flask à `supprimer_matiere(matiere)` pouvait donc utiliser une fonction prévue pour le terminal.
+
+### Correction
+- Conservation d'une seule fonction métier `supprimer_matiere(matiere)`.
+- Renommage de l'ancienne interface terminal en `menu_supprimer_matiere()`.
+- `supprimer_notes()` utilise maintenant `supprimer_note()` au lieu de modifier directement les listes.
+- `ajouter_notes()` utilise maintenant `ajouter_note()` au lieu de dupliquer la logique de validation et de sauvegarde.
+- `voir_moyenne()` réutilise maintenant `calculer_moyennes()`.
+- L'ancien menu terminal peut maintenant utiliser les mêmes fonctions métier que l'interface Web.
+- L'option de modification d'une note du menu terminal appelle désormais `modifier_note()`.
+
+### Architecture actuelle
+
+```
+Interface Web ──┐
+                ├──> fonctions métier de gestion_note.py ──> sauvegarde.py ──> notes.json
+Interface terminal ┘
+```
+
+### Compréhension
+Une même opération métier ne doit pas être réécrite pour chaque interface. Le Web et le terminal peuvent appeler la même fonction Python, ce qui réduit les bugs et évite que deux versions du programme divergent.
+
+### Prochaine étape
+Tester le fonctionnement Web après ce nettoyage, puis commencer à découper progressivement `app.py` pour que chaque route/action ait une responsabilité claire avant de passer au CSS responsive.
