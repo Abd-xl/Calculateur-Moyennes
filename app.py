@@ -3,11 +3,11 @@ from gestion_note import ajouter_note, calculer_moyennes, notes, coef
 from sauvegarde import charger
 
 app = Flask(__name__)
+charger()
 
 
 @app.route("/", methods=["GET", "POST"])
 def accueil():
-    charger()
     message = None
 
     if request.method == "POST":
