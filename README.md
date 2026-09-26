@@ -1,93 +1,139 @@
-# Calculateur de Moyennes
+# Calculateur de moyennes
 
-## Description
-Le **Calculateur de Moyennes** est une application Python permettant de gérer des notes scolaires par matière, calculer les moyennes pondérées et afficher diverses informations liées aux résultats scolaires.
+Application de gestion de notes scolaires, développée en Python et progressivement adaptée à une interface web avec Flask.
 
----
+Le projet a commencé comme une application en ligne de commande utilisant un fichier JSON pour la persistance des données. La branche `web-app` constitue l'évolution vers une application web tout en conservant le cœur métier du projet.
 
-### Fonctionnalités
-- Ajouter des notes et leurs coefficients.
-- Calculer les moyennes par matière et la moyenne générale.
-- Afficher les notes d'une matière.
-- Modifier, supprimer des notes ou des matières.
-- Sauvegarder les données dans un fichier (`notes.json`) pour une utilisation ultérieure.
-- Réinitialiser toutes les données.
+## Fonctionnalités actuelles
 
----
+- Ajout de notes par matière.
+- Attribution d'un coefficient à chaque matière.
+- Calcul de la moyenne de chaque matière.
+- Calcul de la moyenne générale pondérée.
+- Modification d'une note.
+- Suppression d'une note.
+- Suppression d'une matière.
+- Sauvegarde automatique dans `notes.json`.
+- Interface web avec Flask et Jinja2.
+- Gestion des erreurs de validation côté logique métier.
 
-## Prérequis
-- Python 3.x
-- Bibliothèque JSON (intégrée par défaut en Python)
+## Structure
 
----
+```text
+.
+├── app.py
+├── gestion_note.py
+├── main.py
+├── sauvegarde.py
+├── notes.json
+├── templates/
+│   └── index.html
+└── docs/
+    ├── ARCHITECTURE.md
+    ├── JOURNAL.md
+    └── ROADMAP.md
+```
+
+### Rôle des principaux fichiers
+
+- `app.py` : routes Flask et gestion des requêtes HTTP.
+- `gestion_note.py` : logique métier du calculateur.
+- `sauvegarde.py` : chargement et sauvegarde des données.
+- `main.py` : ancienne interface en ligne de commande.
+- `templates/index.html` : interface HTML rendue par Flask.
+- `notes.json` : données persistées localement.
 
 ## Installation
 
-1. Clonez le dépôt sur votre machine locale :
-   ```sh
-   git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
-   ```
+### Prérequis
 
-2. Exécutez le fichier principal de l’application :
-   ```sh
-   python main.py
-   ```
+- Python 3.x
+- Flask
 
----
+### Application web
 
-## Instructions
+Cloner le dépôt :
 
-### Menu principal
-- **1. Ajouter des notes :** Ajoutez des notes pour des matières spécifiques.
-- **2. Voir les moyennes :** Affichez les moyennes par matière et la moyenne générale.
-- **3. Voir les notes :** Listez les notes enregistrées par matière.
-- **4. Réinitialiser :** Supprimez toutes les données enregistrées.
-- **5. Modifier :** Supprimez ou modifiez des matières ou des notes spécifiques.
-- **6. Quitter :** Terminez l'application.
+```bash
+git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
+cd Calculateur-Moyennes
+```
 
-### Fichier de sauvegarde
-Les données des notes et des coefficients sont enregistrées automatiquement dans un fichier `notes.json` pour être récupérées lors du prochain démarrage. Le programme est capable de gérer les erreurs de fichier, y compris les fichiers JSON corrompus.
+Installer Flask :
 
----
+```bash
+pip install flask
+```
 
-## Contributions
-Toute contribution est la bienvenue ! Voici comment vous pouvez aider :
-1. **Fork** le dépôt.
-2. Créez une nouvelle branche :
-   ```sh
-   git checkout -b feature/nouvelle-fonctionnalité
-   ```
-3. Apportez vos modifications et poussez vos changements :
-   ```sh
-   git commit -m "Ajout d'une nouvelle fonctionnalité"
-   git push origin feature/nouvelle-fonctionnalité
-   ```
-4. Ouvrez une **Pull Request**.
+Lancer l'application :
 
----
+```bash
+python app.py
+```
 
-## Historique des versions
+L'application est ensuite accessible sur le serveur local indiqué par Flask.
 
-### [1.2.0] - 2026-06-11
-- Réorganisation en plusieurs fichiers : `main.py`, `gestion_notes.py`, `sauvegarde.py`.
-- Ajout de validations utilisateur robustes pour éviter les erreurs.
-- Amélioration de la gestion des sauvegardes : réinitialisation et gestion des JSON corrompus.
+### Version terminal
 
-### [1.1.0] - 2026-05-21
-- Possibilité de modifier une note existante.
+L'ancienne interface CLI reste disponible avec :
 
-### [1.0.0] - 2026-05-20
-- Ajout du menu modifier/supprimer.
-- Possibilité de supprimer une matière.
-- Fonction permettant de réinitialiser toutes les données.
-- Sauvegarde des données dans un fichier JSON.
-- Affichage des notes enregistrées.
+```bash
+python main.py
+```
 
-### [0.1.0] - 2026-05-16
+## Architecture
+
+La branche `web-app` suit actuellement une séparation simple des responsabilités :
+
+```text
+Navigateur
+    │
+    ▼
+Routes Flask (app.py)
+    │
+    ▼
+Logique métier (gestion_note.py)
+    │
+    ▼
+Persistance (sauvegarde.py)
+    │
+    ▼
+notes.json
+```
+
+Les interfaces ne doivent pas dupliquer les règles de gestion des notes. Les opérations comme l'ajout, la modification et la suppression sont centralisées dans la logique métier.
+
+## Développement
+
+Le projet évolue progressivement afin de conserver une base compréhensible et testable à chaque étape.
+
+Les décisions d'architecture et les étapes importantes sont documentées dans :
+
+- `docs/ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/JOURNAL.md`
+
+La prochaine phase concerne l'amélioration de l'interface et son adaptation aux écrans mobiles.
+
+## Historique
+
+### 1.2.0 — 2026-06-11
+- Réorganisation du projet en plusieurs modules.
+- Renforcement de la validation des données.
+- Amélioration de la gestion des sauvegardes.
+
+### 1.1.0 — 2026-05-21
+- Ajout de la modification d'une note.
+
+### 1.0.0 — 2026-05-20
+- Ajout du menu de modification et de suppression.
+- Suppression d'une matière.
+- Réinitialisation des données.
+- Sauvegarde JSON.
+
+### 0.1.0 — 2026-05-16
 - Première version du calculateur de moyennes.
-- Ajout des fonctionnalités de calcul de moyennes et de gestion des matières/notes.
 
----
+## Auteur
 
-## Auteurs
-- **Abd-xl** : Créateur principal
+**Abd-xl**
