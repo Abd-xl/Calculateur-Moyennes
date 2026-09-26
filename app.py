@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from gestion_note import ajouter_note, notes, coef
+from gestion_note import ajouter_note, calculer_moyennes, notes, coef
 from sauvegarde import charger
 
 app = Flask(__name__)
@@ -21,10 +21,14 @@ def accueil():
         except (TypeError, ValueError) as erreur:
             message = str(erreur)
 
+    moyennes, moyenne_generale = calculer_moyennes()
+
     return render_template(
         "index.html",
         notes=notes,
         coef=coef,
+        moyennes=moyennes,
+        moyenne_generale=moyenne_generale,
         message=message
     )
 
