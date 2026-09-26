@@ -6,14 +6,26 @@ def calculer_moyenne(liste_notes):
         return 0
     return sum(liste_notes) / len(liste_notes)
 
-def ajouter_note(matiere, note):
+def ajouter_note(matiere, note, coefficient):
+    if not matiere.strip():
+        raise ValueError("La matière ne peut pas être vide.")
+
     if not isinstance(note, (int, float)):
         raise TypeError("La note doit être un nombre.")
     if not 0 <= note <= 20:
         raise ValueError("La note doit être comprise entre 0 et 20.")
+
+    if not isinstance(coefficient, int):
+        raise TypeError("Le coefficient doit être un entier.")
+    if coefficient <= 0:
+        raise ValueError("Le coefficient doit être supérieur à 0.")
+
     if matiere not in notes:
-        raise ValueError("Cette matière n'existe pas.")
-    
+        notes[matiere] = []
+        coef[matiere] = coefficient
+    elif coef[matiere] != coefficient:
+        raise ValueError(f"La matière existe déjà avec le coefficient {coef[matiere]}.")
+
     notes[matiere].append(note)
     sauvegarder()
 
