@@ -30,6 +30,21 @@ def ajouter_note(matiere, note, coefficient):
     sauvegarder()
 
 
+def modifier_note(matiere, ancienne_note, nouvelle_note):
+    if matiere not in notes:
+        raise ValueError("Cette matière n'existe pas.")
+
+    if not 0 <= nouvelle_note <= 20:
+        raise ValueError("La nouvelle note doit être comprise entre 0 et 20.")
+
+    if ancienne_note not in notes[matiere]:
+        raise ValueError("Cette note n'existe pas dans cette matière.")
+
+    index = notes[matiere].index(ancienne_note)
+    notes[matiere][index] = nouvelle_note
+    sauvegarder()
+
+
 def supprimer_matiere(matiere):
     if matiere not in notes:
         raise ValueError("Cette matière n'existe pas.")
