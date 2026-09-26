@@ -33,8 +33,11 @@ def accueil():
     return afficher_page(message)
 
 
-@app.route("/ajouter", methods=["POST"])
+@app.route("/ajouter", methods=["GET", "POST"])
 def ajouter():
+    if request.method == "GET":
+        return render_template("ajouter.html")
+
     try:
         matiere = request.form["matiere"]
         note = float(request.form["note"])
@@ -46,7 +49,17 @@ def ajouter():
         return redirect(url_for("accueil", message=message))
 
     except (TypeError, ValueError) as erreur:
-        return afficher_page(str(erreur))
+        return render_template("ajouter.html", message=str(erreur))
+
+
+@app.route("/notes")
+def liste_notes():
+    return render_template("notes.html", notes=notes, coef=coef)
+
+
+@app.route("/tableur")
+def tableur():
+    return render_template("tableur.html", notes=notes, coef=coef)
 
 
 @app.route("/supprimer", methods=["POST"])
