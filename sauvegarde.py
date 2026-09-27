@@ -99,13 +99,17 @@ def charger():
     try:
         with open("notes.json", "r") as f:
             data = json.load(f)
-            notes.update(data.get("notes", {}))
-            coef.update(data.get("coef", {}))
+            _valider_donnees(data)
+
+            notes.clear()
+            coef.clear()
+            notes.update(data["notes"])
+            coef.update(data["coef"])
             print("Données chargées avec succès.")
     except FileNotFoundError:
         notes.clear()
         coef.clear()
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError, ValueError):
         notes.clear()
         coef.clear()
 
