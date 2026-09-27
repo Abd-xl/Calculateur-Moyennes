@@ -8,7 +8,7 @@ def sauvegarder():
         with open('notes.json' , 'w') as f:
             json.dump({'notes': notes, 'coef': coef}, f)
             print("Données sauvegardées avec succès.")
-    except Exception as e:
+    except (OSError, TypeError) as e:
         print(f"Erreur lors de la sauvegarde des données : {e}")
 
 
