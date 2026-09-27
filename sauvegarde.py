@@ -24,6 +24,54 @@ def _valider_donnees(data):
             "Les matières et les coefficients ne correspondent pas."
         )
 
+    for matiere, liste_notes in notes_data.items():
+        if not isinstance(matiere, str) or not matiere.strip():
+            raise ValueError("Le nom de la matière est invalide.")
+
+        if not isinstance(liste_notes, list):
+            raise ValueError(
+                f"Les notes de {matiere} doivent être une liste."
+            )
+
+        coefficient = coef_data[matiere]
+        if (
+            isinstance(coefficient, bool)
+            or not isinstance(coefficient, int)
+            or coefficient <= 0
+        ):
+            raise ValueError(
+                f"Le coefficient de {matiere} doit être un entier positif."
+            )
+
+        for note_data in liste_notes:
+            if not isinstance(note_data, dict):
+                raise ValueError(
+                    f"Une note de {matiere} doit être un dictionnaire."
+                )
+
+            if set(note_data) != {"note", "bareme"}:
+                raise ValueError(
+                    f"Une note de {matiere} doit contenir note et bareme."
+                )
+
+            note = note_data["note"]
+            bareme = note_data["bareme"]
+
+            if (
+                isinstance(note, bool)
+                or not isinstance(note, (int, float))
+            ):
+                raise ValueError("La note doit être un nombre.")
+
+            if bareme not in (10, 20):
+                raise ValueError("Le barème doit être 10 ou 20.")
+
+            if not 0 <= note <= bareme:
+                raise ValueError(
+                    f"La note doit être comprise entre 0 et {bareme}."
+                )
+
+
 
 def sauvegarder():
     try:
