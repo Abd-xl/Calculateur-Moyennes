@@ -39,6 +39,8 @@ def ajouter_note(matiere, note, coefficient, bareme=20):
         raise ValueError("Le coefficient doit être supérieur à 0.")
 
     matiere_existante = _trouver_matiere(matiere)
+    nouvelle_matiere = matiere_existante is None
+
     if matiere_existante is not None:
         if coef[matiere_existante] != coefficient:
             raise ValueError(
@@ -51,7 +53,17 @@ def ajouter_note(matiere, note, coefficient, bareme=20):
         coef[matiere] = coefficient
 
     notes[matiere].append({"note": note, "bareme": bareme})
-    sauvegarder()
+
+    try:
+        sauvegarder()
+    except Exception:
+        notes[matiere].pop()
+
+        if nouvelle_matiere:
+            del notes[matiere]
+            del coef[matiere]
+
+        raise
 
 
 def modifier_note(matiere, index, nouvelle_note):
@@ -67,17 +79,33 @@ def modifier_note(matiere, index, nouvelle_note):
             f"La nouvelle note doit être comprise entre 0 et {bareme}."
         )
 
+    ancienne_note = notes[matiere][index]["note"]
     notes[matiere][index]["note"] = nouvelle_note
-    sauvegarder()
+
+    try:
+        sauvegarder()
+    except Exception:
+        notes[matiere][index]["note"] = ancienne_note
+        raise
 
 
 def supprimer_matiere(matiere):
     matiere = _trouver_matiere(matiere)
     if matiere is None:
         raise ValueError("Cette matière n'existe pas.")
+
+    anciennes_notes = notes[matiere].copy()
+    ancien_coef = coef[matiere]
+
     del notes[matiere]
     del coef[matiere]
-    sauvegarder()
+
+    try:
+        sauvegarder()
+    except Exception:
+        notes[matiere] = anciennes_notes
+        coef[matiere] = ancien_coef
+        raise
 
 
 def supprimer_note(matiere, index):
@@ -86,8 +114,14 @@ def supprimer_note(matiere, index):
         raise ValueError("Cette matière n'existe pas.")
     if not isinstance(index, int) or not 0 <= index < len(notes[matiere]):
         raise ValueError("Cette note n'existe pas dans cette matière.")
-    notes[matiere].pop(index)
-    sauvegarder()
+
+    note_supprimee = notes[matiere].pop(index)
+
+    try:
+        sauvegarder()
+    except Exception:
+        notes[matiere].insert(index, note_supprimee)
+        raise
 
 
 def calculer_moyennes():
