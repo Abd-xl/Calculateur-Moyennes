@@ -33,3 +33,33 @@ def test_supprimer_refuse_un_index_invalide():
 
     assert response.status_code == 200
     assert b"Cette note n'existe pas dans cette matiÃ¨re." in response.data
+
+
+def test_modifier_refuse_un_champ_manquant():
+    gestion_note.ajouter_note("Maths", 15, 4)
+
+    client = app.app.test_client()
+
+    response = client.post(
+        "/modifier",
+        data={"matiere": "Maths", "index": "0"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_modifier_refuse_une_note_non_numerique():
+    gestion_note.ajouter_note("Maths", 15, 4)
+
+    client = app.app.test_client()
+
+    response = client.post(
+        "/modifier",
+        data={
+            "matiere": "Maths",
+            "index": "0",
+            "nouvelle_note": "abc",
+        },
+    )
+
+    assert response.status_code == 200
