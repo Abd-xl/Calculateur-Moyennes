@@ -6,6 +6,25 @@ notes = {}
 coef = {}
 
 
+def _valider_donnees(data):
+    if not isinstance(data, dict):
+        raise ValueError("Les données doivent être un dictionnaire.")
+
+    notes_data = data.get("notes")
+    coef_data = data.get("coef")
+
+    if not isinstance(notes_data, dict):
+        raise ValueError("Les notes doivent être un dictionnaire.")
+
+    if not isinstance(coef_data, dict):
+        raise ValueError("Les coefficients doivent être un dictionnaire.")
+
+    if set(notes_data) != set(coef_data):
+        raise ValueError(
+            "Les matières et les coefficients ne correspondent pas."
+        )
+
+
 def sauvegarder():
     try:
         with tempfile.NamedTemporaryFile(
