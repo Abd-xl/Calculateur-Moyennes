@@ -80,3 +80,46 @@ def test_valider_donnees_refuse_une_note_invalide(note_data):
             "notes": {"Maths": [note_data]},
             "coef": {"Maths": 4},
         })
+
+
+def test_charger_refuse_un_json_structurellement_invalide(monkeypatch, tmp_path):
+    fichier = tmp_path / "notes.json"
+    fichier.write_text(
+        '{"notes": {"Maths": "invalide"}, "coef": {"Maths": 4}}',
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
+    import sauvegarde
+
+    sauvegarde.notes["Ancienne"] = []
+    sauvegarde.coef["Ancienne"] = 2
+
+    sauvegarde.charger()
+
+    assert sauvegarde.notes == {}
+    assert sauvegarde.coef == {}
+
+
+def test_charger_accepte_un_json_valide(monkeypatch, tmp_path):
+    fichier = tmp_path / "notes.json"
+    fichier.write_text(
+        '{"notes": {"Maths": [{"note": 15, "bareme": 20}]}, '
+        '"coef": {"Maths": 4}}',
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
+    import sauvegarde
+
+    sauvegarde.notes.clear()
+    sauvegarde.coef.clear()
+
+    sauvegarde.charger()
+
+    assert sauvegarde.notes == {
+        "Maths": [{"note": 15, "bareme": 20}]
+    }
+    assert sauvegarde.coef == {"Maths": 4}
