@@ -1,4 +1,4 @@
-from sauvegarde import sauvegarder
+from sauvegarde import SauvegardeError, sauvegarder
 from sauvegarde import notes, coef
 
 
@@ -56,7 +56,7 @@ def ajouter_note(matiere, note, coefficient, bareme=20):
 
     try:
         sauvegarder()
-    except Exception:
+    except SauvegardeError:
         notes[matiere].pop()
 
         if nouvelle_matiere:
@@ -84,7 +84,7 @@ def modifier_note(matiere, index, nouvelle_note):
 
     try:
         sauvegarder()
-    except Exception:
+    except SauvegardeError:
         notes[matiere][index]["note"] = ancienne_note
         raise
 
@@ -102,7 +102,7 @@ def supprimer_matiere(matiere):
 
     try:
         sauvegarder()
-    except Exception:
+    except SauvegardeError:
         notes[matiere] = anciennes_notes
         coef[matiere] = ancien_coef
         raise
@@ -119,7 +119,7 @@ def supprimer_note(matiere, index):
 
     try:
         sauvegarder()
-    except Exception:
+    except SauvegardeError:
         notes[matiere].insert(index, note_supprimee)
         raise
 
