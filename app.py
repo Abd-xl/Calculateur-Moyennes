@@ -46,9 +46,11 @@ def ajouter():
         if mode == "existante":
             matiere = request.form["matiere_existante"]
             coefficient = coef[matiere]
-        else:
+        elif mode == "nouvelle":
             matiere = request.form["nouvelle_matiere"]
             coefficient = int(request.form["coefficient"])
+        else:
+            raise ValueError("Mode invalide.")
 
         ajouter_note(matiere, note, coefficient, bareme)
 
