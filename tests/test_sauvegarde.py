@@ -139,3 +139,21 @@ def test_charger_accepte_un_json_valide(monkeypatch, tmp_path):
         "Maths": [{"note": 15, "bareme": 20}]
     }
     assert sauvegarde.coef == {"Maths": 4}
+
+
+def test_sauvegarder_signale_une_erreur_systeme(monkeypatch, tmp_path):
+    import sauvegarde
+
+    monkeypatch.chdir(tmp_path)
+    sauvegarde.notes.clear()
+    sauvegarde.coef.clear()
+    sauvegarde.notes["Maths"] = [{"note": 15, "bareme": 20}]
+    sauvegarde.coef["Maths"] = 4
+
+    def remplacement_en_echec(source, destination):
+        raise OSError("disque indisponible")
+
+    monkeypatch.setattr(sauvegarde.os, "replace", remplacement_en_echec)
+
+    with pytest.raises(sauvegarde.SauvegardeError, match="disque indisponible"):
+        sauvegarde.sauvegarder()
