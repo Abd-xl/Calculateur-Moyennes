@@ -106,7 +106,7 @@ def modifier():
         message = f"Note modifiée : {matiere} — {nouvelle_note:g}"
         return redirect(url_for("accueil", message=message))
 
-    except (TypeError, ValueError) as erreur:
+    except (KeyError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
 
 
