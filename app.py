@@ -8,10 +8,16 @@ from gestion_note import (
     notes,
     coef,
 )
-from sauvegarde import charger
+from sauvegarde import DonneesInvalidesError, charger
 
 app = Flask(__name__)
-charger()
+
+erreur_chargement = None
+
+try:
+    charger()
+except DonneesInvalidesError as erreur:
+    erreur_chargement = str(erreur)
 
 
 def afficher_page(message=None):
@@ -24,6 +30,7 @@ def afficher_page(message=None):
         moyennes=moyennes,
         moyenne_generale=moyenne_generale,
         message=message,
+        erreur_chargement=erreur_chargement,
     )
 
 
@@ -31,6 +38,40 @@ def afficher_page(message=None):
 def accueil():
     message = request.args.get("message")
     return afficher_page(message)
+
+
+@app.route("/chargement/reessayer", methods=["POST"])
+def reessayer_chargement():
+    global erreur_chargement
+
+    try:
+        charger()
+        erreur_chargement = None
+        message = "Données chargées avec succès."
+    except DonneesInvalidesError as erreur:
+        erreur_chargement = str(erreur)
+        message = "Le fichier notes.json est toujours invalide."
+
+    return redirect(url_for("accueil", message=message))
+
+
+@app.route("/chargement/vide", methods=["POST"])
+def utiliser_donnees_vides():
+    global erreur_chargement
+
+    notes.clear()
+    coef.clear()
+    erreur_chargement = None
+
+    return redirect(
+        url_for(
+            "accueil",
+            message=(
+                "Données vides utilisées. Le fichier notes.json "
+                "existant n'a pas été supprimé."
+            ),
+        )
+    )
 
 
 @app.route("/ajouter", methods=["GET", "POST"])
@@ -92,7 +133,7 @@ def supprimer():
         )
         return redirect(url_for("accueil", message=message))
 
-    except (TypeError, ValueError) as erreur:
+    except (KeyError, IndexError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
 
 
