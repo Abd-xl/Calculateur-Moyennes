@@ -10,6 +10,10 @@ class DonneesInvalidesError(ValueError):
     """Levée lorsque notes.json existe mais ne peut pas être utilisé."""
 
 
+class SauvegardeError(RuntimeError):
+    """Levée lorsqu'une sauvegarde des données échoue."""
+
+
 def _valider_donnees(data):
     if not isinstance(data, dict):
         raise DonneesInvalidesError("Les données doivent être un dictionnaire.")
@@ -93,12 +97,15 @@ def sauvegarder():
         print("Données sauvegardées avec succès.")
 
     except (OSError, TypeError) as erreur:
-        print(f"Erreur lors de la sauvegarde des données : {erreur}")
         if chemin_temporaire is not None:
             try:
                 os.remove(chemin_temporaire)
             except OSError:
                 pass
+
+        raise SauvegardeError(
+            f"Impossible de sauvegarder les données : {erreur}"
+        ) from erreur
 
 
 def charger():
@@ -128,9 +135,21 @@ def charger():
 def reinitialiser():
     confirmation = input("\nVoulez-vous réinitialiser ? y/n: ")
     if confirmation.lower() == "y":
+        anciennes_notes = notes.copy()
+        anciens_coef = coef.copy()
+
         notes.clear()
         coef.clear()
-        sauvegarder()
+
+        try:
+            sauvegarder()
+        except SauvegardeError:
+            notes.clear()
+            coef.clear()
+            notes.update(anciennes_notes)
+            coef.update(anciens_coef)
+            raise
+
         print("Success")
     elif confirmation.lower() == "n":
         print("Annulé.")
