@@ -120,7 +120,7 @@ def supprimer_matiere_route():
         message = f"Matière supprimée : {matiere}"
         return redirect(url_for("accueil", message=message))
 
-    except (TypeError, ValueError) as erreur:
+    except (KeyError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
 
 
