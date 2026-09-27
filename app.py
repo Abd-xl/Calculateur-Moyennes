@@ -8,7 +8,7 @@ from gestion_note import (
     notes,
     coef,
 )
-from sauvegarde import DonneesInvalidesError, charger
+from sauvegarde import DonneesInvalidesError, SauvegardeError, charger
 
 app = Flask(__name__)
 
@@ -99,6 +99,14 @@ def ajouter():
         message = f"Note ajoutée : {matiere} — {note:g}/{bareme} ({note_sur_20:g}/20)"
         return redirect(url_for("accueil", message=message))
 
+    except SauvegardeError as erreur:
+        return render_template(
+            "ajouter.html",
+            notes=notes,
+            coef=coef,
+            message=str(erreur),
+        )
+
     except (KeyError, TypeError, ValueError) as erreur:
         return render_template(
             "ajouter.html",
@@ -133,6 +141,9 @@ def supprimer():
         )
         return redirect(url_for("accueil", message=message))
 
+    except SauvegardeError as erreur:
+        return afficher_page(str(erreur))
+
     except (KeyError, IndexError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
 
@@ -149,6 +160,9 @@ def modifier():
         message = f"Note modifiée : {matiere} — {nouvelle_note:g}"
         return redirect(url_for("accueil", message=message))
 
+    except SauvegardeError as erreur:
+        return afficher_page(str(erreur))
+
     except (KeyError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
 
@@ -162,6 +176,9 @@ def supprimer_matiere_route():
 
         message = f"Matière supprimée : {matiere}"
         return redirect(url_for("accueil", message=message))
+
+    except SauvegardeError as erreur:
+        return afficher_page(str(erreur))
 
     except (KeyError, TypeError, ValueError) as erreur:
         return afficher_page(str(erreur))
