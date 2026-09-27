@@ -164,3 +164,65 @@ def test_calculer_moyennes():
         "Physique": 10,
     }
     assert moyenne_generale == pytest.approx(13.3333333333)
+
+
+def test_ajouter_note_rollback_si_sauvegarde_echoue(monkeypatch):
+    def sauvegarde_en_echec():
+        raise gestion_note.SauvegardeError("disque indisponible")
+
+    monkeypatch.setattr(gestion_note, "sauvegarder", sauvegarde_en_echec)
+
+    with pytest.raises(gestion_note.SauvegardeError):
+        gestion_note.ajouter_note("Maths", 15, 4)
+
+    assert gestion_note.notes == {}
+    assert gestion_note.coef == {}
+
+
+def test_modifier_note_rollback_si_sauvegarde_echoue(monkeypatch):
+    gestion_note.ajouter_note("Maths", 12, 4)
+
+    def sauvegarde_en_echec():
+        raise gestion_note.SauvegardeError("disque indisponible")
+
+    monkeypatch.setattr(gestion_note, "sauvegarder", sauvegarde_en_echec)
+
+    with pytest.raises(gestion_note.SauvegardeError):
+        gestion_note.modifier_note("Maths", 0, 18)
+
+    assert gestion_note.notes["Maths"][0]["note"] == 12
+
+
+def test_supprimer_note_rollback_si_sauvegarde_echoue(monkeypatch):
+    gestion_note.ajouter_note("Maths", 12, 4)
+    gestion_note.ajouter_note("Maths", 16, 4)
+
+    def sauvegarde_en_echec():
+        raise gestion_note.SauvegardeError("disque indisponible")
+
+    monkeypatch.setattr(gestion_note, "sauvegarder", sauvegarde_en_echec)
+
+    with pytest.raises(gestion_note.SauvegardeError):
+        gestion_note.supprimer_note("Maths", 0)
+
+    assert gestion_note.notes["Maths"] == [
+        {"note": 12, "bareme": 20},
+        {"note": 16, "bareme": 20},
+    ]
+
+
+def test_supprimer_matiere_rollback_si_sauvegarde_echoue(monkeypatch):
+    gestion_note.ajouter_note("Maths", 15, 4)
+
+    def sauvegarde_en_echec():
+        raise gestion_note.SauvegardeError("disque indisponible")
+
+    monkeypatch.setattr(gestion_note, "sauvegarder", sauvegarde_en_echec)
+
+    with pytest.raises(gestion_note.SauvegardeError):
+        gestion_note.supprimer_matiere("Maths")
+
+    assert gestion_note.notes == {
+        "Maths": [{"note": 15, "bareme": 20}]
+    }
+    assert gestion_note.coef == {"Maths": 4}
