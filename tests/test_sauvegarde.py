@@ -1,6 +1,6 @@
 import pytest
 
-from sauvegarde import _valider_donnees
+from sauvegarde import DonneesInvalidesError, _valider_donnees
 
 
 def test_valider_donnees_accepte_une_structure_valide():
@@ -82,7 +82,7 @@ def test_valider_donnees_refuse_une_note_invalide(note_data):
         })
 
 
-def test_charger_refuse_un_json_structurellement_invalide(monkeypatch, tmp_path):
+def test_charger_signale_un_json_structurellement_invalide(monkeypatch, tmp_path):
     fichier = tmp_path / "notes.json"
     fichier.write_text(
         '{"notes": {"Maths": "invalide"}, "coef": {"Maths": 4}}',
@@ -96,10 +96,26 @@ def test_charger_refuse_un_json_structurellement_invalide(monkeypatch, tmp_path)
     sauvegarde.notes["Ancienne"] = []
     sauvegarde.coef["Ancienne"] = 2
 
-    sauvegarde.charger()
+    with pytest.raises(DonneesInvalidesError):
+        sauvegarde.charger()
 
-    assert sauvegarde.notes == {}
-    assert sauvegarde.coef == {}
+    assert sauvegarde.notes == {"Ancienne": []}
+    assert sauvegarde.coef == {"Ancienne": 2}
+
+
+def test_charger_signale_un_json_invalide(monkeypatch, tmp_path):
+    fichier = tmp_path / "notes.json"
+    fichier.write_text(
+        '{"notes": ',
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
+    import sauvegarde
+
+    with pytest.raises(DonneesInvalidesError, match="JSON invalide"):
+        sauvegarde.charger()
 
 
 def test_charger_accepte_un_json_valide(monkeypatch, tmp_path):
