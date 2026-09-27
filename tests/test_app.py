@@ -63,3 +63,21 @@ def test_modifier_refuse_une_note_non_numerique():
     )
 
     assert response.status_code == 200
+
+
+def test_ajouter_refuse_un_mode_invalide():
+    client = app.app.test_client()
+
+    response = client.post(
+        "/ajouter",
+        data={
+            "mode": "invalide",
+            "note": "15",
+            "bareme": "20",
+            "nouvelle_matiere": "Anglais",
+            "coefficient": "3",
+        },
+    )
+
+    assert response.status_code == 200
+    assert b"Mode invalide." in response.data
