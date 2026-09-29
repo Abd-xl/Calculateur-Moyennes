@@ -31,6 +31,14 @@
         }
     }
 
+    function removeLocalState() {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (error) {
+            console.warn("Impossible de supprimer le stockage local.", error);
+        }
+    }
+
     function sameState(first, second) {
         return JSON.stringify(first) === JSON.stringify(second);
     }
@@ -141,9 +149,13 @@
             if (redirectUrl.searchParams.get("sync") !== "0") {
                 try {
                     const state = await recupererEtatApresModification();
-                    writeLocalState(state);
+
+                    if (!writeLocalState(state)) {
+                        removeLocalState();
+                    }
                 } catch (error) {
                     console.warn("Impossible de mettre à jour le stockage local.", error);
+                    removeLocalState();
                 }
             }
 
