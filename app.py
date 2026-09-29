@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 from gestion_note import (
     ajouter_note,
     calculer_moyennes,
@@ -8,7 +8,12 @@ from gestion_note import (
     notes,
     coef,
 )
-from sauvegarde import DonneesInvalidesError, SauvegardeError, charger
+from sauvegarde import (
+    DonneesInvalidesError,
+    SauvegardeError,
+    charger,
+    remplacer_donnees,
+)
 
 app = Flask(__name__)
 
@@ -40,6 +45,31 @@ def accueil():
     return afficher_page(message)
 
 
+@app.route("/api/etat")
+def etat_api():
+    response = jsonify({"notes": notes, "coef": coef})
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/synchroniser", methods=["POST"])
+def synchroniser_api():
+    data = request.get_json(silent=True)
+
+    if data is None:
+        return jsonify({"error": "Les données envoyées sont invalides."}), 400
+
+    try:
+        remplacer_donnees(data)
+    except DonneesInvalidesError as erreur:
+        return jsonify({"error": str(erreur)}), 400
+
+    global erreur_chargement
+    erreur_chargement = None
+
+    return jsonify({"notes": notes, "coef": coef})
+
+
 @app.route("/chargement/reessayer", methods=["POST"])
 def reessayer_chargement():
     global erreur_chargement
@@ -48,11 +78,13 @@ def reessayer_chargement():
         charger()
         erreur_chargement = None
         message = "Données chargées avec succès."
+        sync = "1"
     except DonneesInvalidesError as erreur:
         erreur_chargement = str(erreur)
         message = "Le fichier notes.json est toujours invalide."
+        sync = "0"
 
-    return redirect(url_for("accueil", message=message))
+    return redirect(url_for("accueil", message=message, sync=sync))
 
 
 @app.route("/chargement/vide", methods=["POST"])
@@ -70,6 +102,7 @@ def utiliser_donnees_vides():
                 "Données vides utilisées. Le fichier notes.json "
                 "existant n'a pas été supprimé."
             ),
+            sync="1",
         )
     )
 
@@ -97,7 +130,7 @@ def ajouter():
 
         note_sur_20 = note * 20 / bareme
         message = f"Note ajoutée : {matiere} — {note:g}/{bareme} ({note_sur_20:g}/20)"
-        return redirect(url_for("accueil", message=message))
+        return redirect(url_for("accueil", message=message, sync="1"))
 
     except SauvegardeError as erreur:
         return render_template(
@@ -139,7 +172,7 @@ def supprimer():
             f"Note supprimée : {matiere} — "
             f"{note['note']:g}/{note['bareme']}"
         )
-        return redirect(url_for("accueil", message=message))
+        return redirect(url_for("accueil", message=message, sync="1"))
 
     except SauvegardeError as erreur:
         return afficher_page(str(erreur))
@@ -158,7 +191,7 @@ def modifier():
         modifier_note(matiere, index, nouvelle_note)
 
         message = f"Note modifiée : {matiere} — {nouvelle_note:g}"
-        return redirect(url_for("accueil", message=message))
+        return redirect(url_for("accueil", message=message, sync="1"))
 
     except SauvegardeError as erreur:
         return afficher_page(str(erreur))
@@ -175,7 +208,7 @@ def supprimer_matiere_route():
         supprimer_matiere(matiere)
 
         message = f"Matière supprimée : {matiere}"
-        return redirect(url_for("accueil", message=message))
+        return redirect(url_for("accueil", message=message, sync="1"))
 
     except SauvegardeError as erreur:
         return afficher_page(str(erreur))
