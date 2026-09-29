@@ -77,6 +77,15 @@ def _valider_donnees(data):
                 )
 
 
+def remplacer_donnees(data):
+    _valider_donnees(data)
+
+    notes.clear()
+    coef.clear()
+    notes.update(data["notes"])
+    coef.update(data["coef"])
+
+
 def sauvegarder():
     chemin_temporaire = None
 
@@ -125,10 +134,7 @@ def charger():
         coef.clear()
         return
 
-    notes.clear()
-    coef.clear()
-    notes.update(data["notes"])
-    coef.update(data["coef"])
+    remplacer_donnees(data)
     print("Données chargées avec succès.")
 
 
