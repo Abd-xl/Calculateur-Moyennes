@@ -22,7 +22,13 @@
     }
 
     function writeLocalState(state) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            return true;
+        } catch (error) {
+            console.warn("Impossible d'écrire dans localStorage.", error);
+            return false;
+        }
     }
 
     function sameState(first, second) {
@@ -60,14 +66,10 @@
             return;
         }
 
-        let localState = readLocalState();
+        const localState = readLocalState();
 
         if (localState === null) {
-            try {
-                writeLocalState(serverState);
-            } catch (error) {
-                console.warn("Impossible d'écrire dans localStorage.", error);
-            }
+            writeLocalState(serverState);
             return;
         }
 
@@ -115,28 +117,13 @@
             submitButton.disabled = true;
         }
 
+        let response;
+
         try {
-            const response = await fetch(form.action, {
+            response = await fetch(form.action, {
                 method: "POST",
                 body: new FormData(form),
             });
-
-            if (response.redirected) {
-                const redirectUrl = new URL(response.url);
-
-                if (redirectUrl.searchParams.get("sync") !== "0") {
-                    const state = await recupererEtatApresModification();
-                    writeLocalState(state);
-                }
-
-                window.location.assign(cleanSyncParameter(redirectUrl));
-                return;
-            }
-
-            const html = await response.text();
-            document.open();
-            document.write(html);
-            document.close();
         } catch (error) {
             console.warn("La soumission JavaScript a échoué.", error);
             form.dataset.submitting = "false";
@@ -145,7 +132,29 @@
             }
             form.dataset.nativeSubmit = "true";
             form.submit();
+            return;
         }
+
+        if (response.redirected) {
+            const redirectUrl = new URL(response.url);
+
+            if (redirectUrl.searchParams.get("sync") !== "0") {
+                try {
+                    const state = await recupererEtatApresModification();
+                    writeLocalState(state);
+                } catch (error) {
+                    console.warn("Impossible de mettre à jour le stockage local.", error);
+                }
+            }
+
+            window.location.assign(cleanSyncParameter(redirectUrl));
+            return;
+        }
+
+        const html = await response.text();
+        document.open();
+        document.write(html);
+        document.close();
     });
 
     initialiserStockageLocal();
