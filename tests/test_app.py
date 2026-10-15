@@ -1,83 +1,52 @@
-import pytest
-
-import app
-import gestion_note
-import sauvegarde
+import os
+import app as module
 
 
-@pytest.fixture(autouse=True)
-def etat_propre(monkeypatch):
-    notes_test = {}
-    coef_test = {}
-
-    monkeypatch.setattr(sauvegarde, "notes", notes_test)
-    monkeypatch.setattr(sauvegarde, "coef", coef_test)
-    monkeypatch.setattr(gestion_note, "notes", notes_test)
-    monkeypatch.setattr(gestion_note, "coef", coef_test)
-    monkeypatch.setattr(app, "notes", notes_test)
-    monkeypatch.setattr(app, "coef", coef_test)
-    monkeypatch.setattr(gestion_note, "sauvegarder", lambda: None)
-
-    app.app.config.update(TESTING=True)
+def reset_database():
+    with module.app.app_context():
+        module.db.drop_all()
+        module.db.create_all()
 
 
-def test_supprimer_refuse_un_index_invalide():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/supprimer",
-        data={"matiere": "Maths", "index": "1"},
-    )
-
-    assert response.status_code == 200
-    assert b"Cette note n'existe pas dans cette matiÃ¨re." in response.data
-
-
-def test_modifier_refuse_un_champ_manquant():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/modifier",
-        data={"matiere": "Maths", "index": "0"},
-    )
-
-    assert response.status_code == 200
+def test_visitors_get_separate_automatic_profiles():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    with module.app.test_client() as first, module.app.test_client() as second:
+        assert first.get("/").status_code == 200
+        assert second.get("/").status_code == 200
+        first_state = first.get("/api/etat").get_json()
+        second_state = second.get("/api/etat").get_json()
+        assert first_state == {"notes": {}, "coef": {}}
+        assert second_state == {"notes": {}, "coef": {}}
+        first.post("/api/synchroniser", json={
+            "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+            "coef": {"Maths": 4},
+        })
+        assert first.get("/api/etat").get_json()["notes"]["Maths"][0]["note"] == 15
+        assert second.get("/api/etat").get_json() == {"notes": {}, "coef": {}}
 
 
-def test_modifier_refuse_une_note_non_numerique():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/modifier",
-        data={
-            "matiere": "Maths",
-            "index": "0",
-            "nouvelle_note": "abc",
-        },
-    )
-
-    assert response.status_code == 200
+def test_admin_requires_authentication(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+    with module.app.test_client() as client:
+        assert client.get("/admin").status_code == 302
+        response = client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        assert response.status_code == 302
+        assert client.get("/admin").status_code == 200
 
 
-def test_ajouter_refuse_un_mode_invalide():
-    client = app.app.test_client()
-
-    response = client.post(
-        "/ajouter",
-        data={
-            "mode": "invalide",
-            "note": "15",
-            "bareme": "20",
-            "nouvelle_matiere": "Anglais",
-            "coefficient": "3",
-        },
-    )
-
-    assert response.status_code == 200
-    assert b"Mode invalide." in response.data
+def test_invalid_data_is_rejected():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    with module.app.test_client() as client:
+        response = client.post("/api/synchroniser", json={
+            "notes": {"Maths": [{"note": 25, "bareme": 20}]},
+            "coef": {"Maths": 4},
+        })
+        assert response.status_code == 400
