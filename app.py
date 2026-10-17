@@ -13,16 +13,11 @@ from flask import Flask, abort, flash, g, jsonify, redirect, render_template, re
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from sauvegarde import DonneesInvalidesError, _valider_donnees
 
 app = Flask(__name__)
-# Render place l'application derrière un proxy de confiance qui transmet l'IP
-# cliente et le protocole HTTPS via X-Forwarded-For / X-Forwarded-Proto.
-if os.environ.get("RENDER") == "true":
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 secret = os.environ.get("SECRET_KEY")
 if os.environ.get("RENDER") == "true" and not secret:
     raise RuntimeError("Configure SECRET_KEY dans Render.")
@@ -42,11 +37,23 @@ app.config.update(
 )
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
+def get_client_ip():
+    """Retourne l'IP cliente selon l'environnement d'exécution."""
+    if os.environ.get("RENDER") == "true":
+        # Render place l'adresse cliente au début de X-Forwarded-For.
+        # Ne pas appliquer ProxyFix ici : il sélectionne les éléments de droite
+        # selon le nombre de proxys de confiance, ce qui n'est pas adapté à ce format.
+        forwarded_for = request.headers.get("X-Forwarded-For", "")
+        if forwarded_for:
+            return forwarded_for.split(",", 1)[0].strip()
+    return get_remote_address()
+
+
 # Le stockage mémoire évite d'ajouter un service externe pour l'instant.
 # Il est local au processus et se réinitialise au redémarrage ; un stockage partagé
 # sera préférable si l'application utilise plusieurs workers ou instances.
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_client_ip,
     app=app,
     default_limits=[],
     storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
