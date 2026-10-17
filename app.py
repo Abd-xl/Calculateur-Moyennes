@@ -10,12 +10,19 @@ from datetime import datetime, timezone
 from functools import wraps
 
 from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from sauvegarde import DonneesInvalidesError, _valider_donnees
 
 app = Flask(__name__)
+# Render place l'application derrière un proxy de confiance qui transmet l'IP
+# cliente et le protocole HTTPS via X-Forwarded-For / X-Forwarded-Proto.
+if os.environ.get("RENDER") == "true":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 secret = os.environ.get("SECRET_KEY")
 if os.environ.get("RENDER") == "true" and not secret:
     raise RuntimeError("Configure SECRET_KEY dans Render.")
@@ -35,6 +42,15 @@ app.config.update(
 )
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
+# Le stockage mémoire évite d'ajouter un service externe pour l'instant.
+# Il est local au processus et se réinitialise au redémarrage ; un stockage partagé
+# sera préférable si l'application utilise plusieurs workers ou instances.
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
+)
 VISITOR_COOKIE = "calculateur_visitor"
 
 
@@ -256,6 +272,7 @@ def supprimer_matiere_route():
 
 
 @app.route("/admin/connexion", methods=["GET", "POST"])
+@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def admin_login():
     if session.get("admin_authenticated"):
         return redirect(url_for("admin_dashboard"))
