@@ -284,3 +284,50 @@ Tester les nouveaux cas avant de poursuivre vers le tableur.
 - Chaque note conserve maintenant sa valeur et son barème d'origine, par exemple `10/10` ou `15/20`.
 - La conversion sur /20 est effectuée uniquement au moment du calcul de la moyenne.
 - La modification et la suppression utilisent l'index de la note afin de distinguer deux notes ayant la même valeur.
+
+## 2026-10-17 — Refactor architectural sur la branche administration
+
+### Objectif
+Réduire les responsabilités de `app.py` sans casser le déploiement, les routes HTTP, les données existantes ni l'interface terminal.
+
+### Changements
+- Introduction de `calculateur.create_app()`.
+- Séparation de la configuration, des extensions Flask, du modèle SQLAlchemy et des hooks de sécurité.
+- Séparation des routes publiques et administrateur.
+- Extraction des calculs de moyennes et de la validation/persistance du profil visiteur.
+- Conservation de `app.py` comme point d'entrée compatible avec `gunicorn app:app`.
+- Mise à jour des endpoints référencés par les templates et correction du lien du modèle d'erreur.
+- Ajout de tests pour les calculs, les pages publiques, l'authentification, la consultation et l'export admin.
+
+### Compatibilité et limites
+- La table `anonymous_visitors`, ses colonnes et ses index restent inchangés.
+- Aucun secret de déploiement ni aucune donnée de production n'a été modifié.
+- Le stockage du rate limiter reste en mémoire par défaut; un stockage partagé sera nécessaire pour plusieurs workers ou instances.
+
+### Validation
+Le premier passage CI a révélé un appel invalide à `Limiter.init_app`. L'appel a été corrigé; le job GitHub Actions suivant a réussi avec 61 tests passés. La validation doit être répétée après les derniers changements de documentation.
+
+## 2026-10-17 — Revue de fond et simplification du refactor
+
+### Problèmes confirmés
+- Les calculs étaient dupliqués entre la CLI et la version web.
+- La validation web dépendait du module historique de sauvegarde JSON.
+- Une matière dont toutes les notes ont été supprimées pouvait faire baisser artificiellement la moyenne générale.
+- Les routes de modification et suppression acceptaient les index négatifs.
+- La feuille de style mêlait des règles publiques et admin.
+- Le README présentait l'installation locale comme parcours principal alors que la version web de production est hébergée sur Render.
+
+### Corrections apportées
+- Création de `domaine.py`, module pur partagé par le web et la CLI pour valider, calculer et modifier les notes.
+- Regroupement du service de persistance web dans `calculateur/services.py`; la configuration est désormais intégrée à la fabrique Flask.
+- Réutilisation des mêmes règles de calcul et de mutation depuis `gestion_note.py` et les routes web.
+- Exclusion des matières sans note du dénominateur de la moyenne générale.
+- Rejet des index négatifs dans les modifications et suppressions, avec message de retour.
+- Séparation de `static/style.css` et `static/admin.css`.
+- README réorienté vers l'application web Render, avec l'ancienne CLI documentée séparément.
+- Ajout de tests de régression pour les calculs, les validations et les index.
+
+### Points restant à surveiller
+- Le comportement du proxy Render et la valeur de `X-Forwarded-For` utilisée par le rate limiter doivent être confirmés.
+- Le stockage du rate limiter est encore en mémoire par défaut.
+- La base conserve son schéma actuel; aucune migration n'a été introduite.

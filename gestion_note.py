@@ -1,139 +1,84 @@
+"""Opérations du programme CLI avec sauvegarde JSON historique.
+
+Les règles métier pures sont partagées avec la version web via `domaine.py`.
+Ce module conserve le contrat de fonctions et les dictionnaires attendus par cli.py.
+"""
+from domaine import (
+    ajouter_note_donnees,
+    calculer_moyenne,
+    convertir_sur_20 as _convertir_sur_20,
+    calculer_moyennes as _calculer_moyennes_donnees,
+    modifier_note_donnees,
+    supprimer_matiere_donnees,
+    supprimer_note_donnees,
+    trouver_matiere,
+)
 from sauvegarde import SauvegardeError, sauvegarder
 from sauvegarde import notes, coef
 
 
 def convertir_sur_20(note):
-    return note["note"] * 20 / note["bareme"]
-
-
-def calculer_moyenne(liste_notes):
-    if len(liste_notes) == 0:
-        return 0
-    return sum(convertir_sur_20(note) for note in liste_notes) / len(liste_notes)
+    return _convertir_sur_20(note)
 
 
 def _trouver_matiere(matiere):
-    nom = matiere.strip()
-    if not nom:
-        return None
-    if nom in notes:
-        return nom
-    for nom_existant in notes:
-        if nom_existant.strip().casefold() == nom.casefold():
-            return nom_existant
-    return None
+    return trouver_matiere(notes, matiere)
+
+
+def _donnees():
+    # Les dictionnaires sont partagés avec sauvegarde.py afin de conserver la CLI.
+    return {"notes": notes, "coef": coef}
 
 
 def ajouter_note(matiere, note, coefficient, bareme=20):
-    if not matiere.strip():
-        raise ValueError("La matière ne peut pas être vide.")
-    if not isinstance(note, (int, float)):
-        raise TypeError("La note doit être un nombre.")
-    if bareme not in (10, 20):
-        raise ValueError("Le barème doit être 10 ou 20.")
-    if not 0 <= note <= bareme:
-        raise ValueError(f"La note doit être comprise entre 0 et {bareme}.")
-    if not isinstance(coefficient, int):
-        raise TypeError("Le coefficient doit être un entier.")
-    if coefficient <= 0:
-        raise ValueError("Le coefficient doit être supérieur à 0.")
-
-    matiere_existante = _trouver_matiere(matiere)
-    nouvelle_matiere = matiere_existante is None
-
-    if matiere_existante is not None:
-        if coef[matiere_existante] != coefficient:
-            raise ValueError(
-                f"La matière existe déjà avec le coefficient {coef[matiere_existante]}."
-            )
-        matiere = matiere_existante
-    else:
-        matiere = matiere.strip()
-        notes[matiere] = []
-        coef[matiere] = coefficient
-
-    notes[matiere].append({"note": note, "bareme": bareme})
-
+    nom, nouvelle_matiere = ajouter_note_donnees(
+        _donnees(), matiere, note, coefficient, bareme
+    )
     try:
         sauvegarder()
     except SauvegardeError:
-        notes[matiere].pop()
-
+        notes[nom].pop()
         if nouvelle_matiere:
-            del notes[matiere]
-            del coef[matiere]
-
+            del notes[nom]
+            del coef[nom]
         raise
 
 
 def modifier_note(matiere, index, nouvelle_note):
-    matiere = _trouver_matiere(matiere)
-    if matiere is None:
-        raise ValueError("Cette matière n'existe pas.")
-    if not isinstance(index, int) or not 0 <= index < len(notes[matiere]):
-        raise ValueError("Cette note n'existe pas dans cette matière.")
-
-    bareme = notes[matiere][index]["bareme"]
-    if not 0 <= nouvelle_note <= bareme:
-        raise ValueError(
-            f"La nouvelle note doit être comprise entre 0 et {bareme}."
-        )
-
-    ancienne_note = notes[matiere][index]["note"]
-    notes[matiere][index]["note"] = nouvelle_note
-
+    nom, ancienne_note = modifier_note_donnees(
+        _donnees(), matiere, index, nouvelle_note
+    )
     try:
         sauvegarder()
     except SauvegardeError:
-        notes[matiere][index]["note"] = ancienne_note
+        notes[nom][index]["note"] = ancienne_note
         raise
 
 
 def supprimer_matiere(matiere):
-    matiere = _trouver_matiere(matiere)
-    if matiere is None:
+    nom = _trouver_matiere(matiere)
+    if nom is None:
         raise ValueError("Cette matière n'existe pas.")
 
-    anciennes_notes = notes[matiere].copy()
-    ancien_coef = coef[matiere]
-
-    del notes[matiere]
-    del coef[matiere]
-
+    anciennes_notes = notes[nom].copy()
+    ancien_coef = coef[nom]
+    supprimer_matiere_donnees(_donnees(), nom)
     try:
         sauvegarder()
     except SauvegardeError:
-        notes[matiere] = anciennes_notes
-        coef[matiere] = ancien_coef
+        notes[nom] = anciennes_notes
+        coef[nom] = ancien_coef
         raise
 
 
 def supprimer_note(matiere, index):
-    matiere = _trouver_matiere(matiere)
-    if matiere is None:
-        raise ValueError("Cette matière n'existe pas.")
-    if not isinstance(index, int) or not 0 <= index < len(notes[matiere]):
-        raise ValueError("Cette note n'existe pas dans cette matière.")
-
-    note_supprimee = notes[matiere].pop(index)
-
+    nom, note_supprimee = supprimer_note_donnees(_donnees(), matiere, index)
     try:
         sauvegarder()
     except SauvegardeError:
-        notes[matiere].insert(index, note_supprimee)
+        notes[nom].insert(index, note_supprimee)
         raise
 
 
 def calculer_moyennes():
-    resultats = {}
-    somme_ponderee = 0
-    somme_coef = 0
-
-    for matiere, liste_notes in notes.items():
-        moyenne = calculer_moyenne(liste_notes)
-        resultats[matiere] = moyenne
-        somme_ponderee += moyenne * coef[matiere]
-        somme_coef += coef[matiere]
-
-    moyenne_generale = somme_ponderee / somme_coef if somme_coef > 0 else 0
-    return resultats, moyenne_generale
+    return _calculer_moyennes_donnees(notes, coef)

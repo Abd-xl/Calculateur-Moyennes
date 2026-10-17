@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Profil visiteur — Administration</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
-    <a class="admin-back-link" href="{{ url_for('admin_dashboard') }}">← Retour aux profils</a>
+    <a class="admin-back-link" href="{{ url_for('admin.admin_dashboard') }}">← Retour aux profils</a>
     <header class="admin-header">
       <div>
         <p class="admin-eyebrow">Détail du profil #{{ user.id }}</p>
         <h1>Profil visiteur</h1>
         <p class="admin-subtitle">Données associées à cet identifiant anonyme.</p>
       </div>
-      <a class="admin-button admin-button--secondary" href="{{ url_for('admin_export') }}">Exporter JSON</a>
+      <a class="admin-button admin-button--secondary" href="{{ url_for('admin.admin_export') }}">Exporter JSON</a>
     </header>
 
     <section class="admin-detail-meta" aria-label="Informations du profil">

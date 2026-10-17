@@ -17,7 +17,7 @@
                     <p class="page-eyebrow">Consultation</p>
                     <h1>Toutes les notes</h1>
                 </div>
-                <a class="back-action" href="{{ url_for('accueil') }}">← Accueil</a>
+                <a class="back-action" href="{{ url_for('public.accueil') }}">← Accueil</a>
             </div>
         </div>
     </header>
@@ -52,7 +52,7 @@
             <section class="empty-state">
                 <h2>Aucune note enregistrée</h2>
                 <p>Ajoute une première note pour commencer.</p>
-                <a class="primary-action" href="{{ url_for('ajouter') }}">Ajouter une note <span aria-hidden="true">→</span></a>
+                <a class="primary-action" href="{{ url_for('public.ajouter') }}">Ajouter une note <span aria-hidden="true">→</span></a>
             </section>
         {% endif %}
     </main>

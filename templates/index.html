@@ -16,25 +16,7 @@
         </div>
     </header>
 
-    <main>
-        {% if erreur_chargement %}
-            <section class="message">
-                <p>Impossible de charger les données enregistrées.</p>
-                <p>{{ erreur_chargement }}</p>
-
-                <form method="POST" action="{{ url_for('reessayer_chargement') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Réessayer</button>
-                </form>
-
-                <form method="POST" action="{{ url_for('utiliser_donnees_vides') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Commencer avec des données vides</button>
-                </form>
-            </section>
-        {% endif %}
-
-        {% if message %}
+    <main>{% if message %}
             <section class="message">
                 <p>{{ message }}</p>
             </section>
@@ -48,7 +30,7 @@
         </section>
 
         <section class="section action-section">
-            <a class="primary-action" href="{{ url_for('tableur') }}">
+            <a class="primary-action" href="{{ url_for('public.tableur') }}">
                 <span>Remplir le tableur</span>
                 <span aria-hidden="true">→</span>
             </a>
@@ -115,7 +97,7 @@
                                 <li class="dialog-note">
                                     <span class="dialog-note__value">{{ note.note }}/{{ note.bareme }}</span>
 
-                                    <form class="dialog-note__edit" method="POST" action="{{ url_for('modifier') }}">
+                                    <form class="dialog-note__edit" method="POST" action="{{ url_for('public.modifier') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
                                         <input type="hidden" name="index" value="{{ loop.index0 }}">
@@ -134,7 +116,7 @@
                                         <button class="dialog-button" type="submit">Valider</button>
                                     </form>
 
-                                    <form method="POST" action="{{ url_for('supprimer') }}">
+                                    <form method="POST" action="{{ url_for('public.supprimer') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="matiere" value="{{ matiere }}">
                                         <input type="hidden" name="index" value="{{ loop.index0 }}">
@@ -145,7 +127,7 @@
                         </ul>
 
                         <div class="dialog-footer">
-                            <form method="POST" action="{{ url_for('supprimer_matiere_route') }}">
+                            <form method="POST" action="{{ url_for('public.supprimer_matiere_route') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="matiere" value="{{ matiere }}">
                                 <button class="dialog-danger" type="submit">Supprimer la matière</button>
@@ -168,7 +150,7 @@
 
         <section class="section">
             <div class="action-list">
-                <a class="action" href="{{ url_for('liste_notes') }}">
+                <a class="action" href="{{ url_for('public.liste_notes') }}">
                     <div>
                         <div class="action__label">Lister toutes les notes</div>
                         <p class="action__description">
@@ -178,7 +160,7 @@
                     <span class="action__arrow">→</span>
                 </a>
 
-                <a class="action" href="{{ url_for('ajouter') }}">
+                <a class="action" href="{{ url_for('public.ajouter') }}">
                     <div>
                         <div class="action__label">Ajouter une note</div>
                         <p class="action__description">
