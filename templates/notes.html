@@ -6,7 +6,7 @@
     <title>Toutes les notes</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script id="server-state" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
-    <script src="{{ url_for('static', filename='local_storage.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='local_storage.js', v='backup-20261017') }}" defer></script>
 </head>
 <body>
     <header class="app-header">
