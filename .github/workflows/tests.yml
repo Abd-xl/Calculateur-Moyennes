@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - web-app
+      - administration
       - feature/admin-dashboard
   pull_request:
     branches:
       - web-app
+      - administration
       - feature/admin-dashboard
 
 permissions:

@@ -1,246 +1,107 @@
 # Calculateur de moyennes
 
-Application de gestion de notes scolaires, d'abord développée en Python en ligne de commande, puis progressivement transformée en application web avec Flask.
+Application web de gestion de notes scolaires, développée avec Flask et hébergée sur Render. Elle permet de saisir des notes sur /10 ou /20, de calculer les moyennes par matière et la moyenne générale pondérée, et de retrouver ses données depuis un navigateur.
 
-Le projet conserve son cœur métier Python tout en ajoutant une interface HTML/CSS adaptée à une utilisation sur ordinateur et mobile.
+**Application en ligne :** https://calculateur-moyennes.onrender.com
 
-## Version actuelle
+> La version web de production est déployée depuis la branche `web-app`. Les changements sur la branche `administration` restent en revue et ne sont pas mis en production avant fusion.
 
-**2.0.0 — branche `web-app`**
+## Fonctionnalités web
 
-Cette version marque la transition du projet vers une application web Flask.
+- Notes sur /10 ou /20, avec conservation du barème d'origine.
+- Moyennes par matière et moyenne générale pondérée par les coefficients.
+- Ajout, modification et suppression de notes et de matières.
+- Profil anonyme par navigateur, sans compte utilisateur public.
+- Synchronisation des données avec le serveur et sauvegarde de secours dans le navigateur.
+- Interface sombre adaptée au mobile et au desktop.
+- Tableau de bord administrateur protégé, consultation des profils et export JSON.
 
-### Fonctionnalités actuelles
+Le mode tableur est encore un emplacement de fonctionnalité à développer.
 
-- Ajout de notes par matière.
-- Notes sur **/10 ou /20**.
-- Conservation du barème original de chaque note.
-- Calcul des moyennes sur une base commune de /20.
-- Coefficient pour chaque matière.
-- Calcul de la moyenne générale pondérée.
-- Modification d'une note.
-- Suppression d'une note.
-- Suppression d'une matière.
-- Détection des matières existantes malgré les espaces superflus ou les différences de casse.
-- Sauvegarde des données dans `notes.json`.
-- Interface web avec Flask et Jinja2.
-- Interface sombre et responsive avec HTML/CSS.
-- Fenêtres `dialog` pour modifier les notes sans agrandir les lignes du tableau.
-- Sélection rapide d'une matière existante lors de l'ajout d'une note.
-- Ancienne interface terminal conservée.
+## Utiliser l'ancienne interface terminal
 
-> Le mode « Remplir le tableur » est encore en développement.
-
-## Structure
-
-```text
-.
-├── app.py
-├── gestion_note.py
-├── sauvegarde.py
-├── main.py
-├── notes.json
-├── requirements.txt
-├── templates/
-│   ├── index.html
-│   ├── ajouter.html
-│   ├── notes.html
-│   └── tableur.html
-├── static/
-│   └── style.css
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── JOURNAL.md
-    └── ROADMAP.md
-```
-
-### Rôle des principaux fichiers
-
-- `app.py` : routes Flask et gestion des requêtes HTTP.
-- `gestion_note.py` : logique métier du calculateur et calcul des moyennes.
-- `sauvegarde.py` : chargement et sauvegarde des données JSON.
-- `main.py` : ancienne interface en ligne de commande.
-- `templates/index.html` : tableau de bord principal.
-- `templates/ajouter.html` : ajout d'une note à une matière existante ou création d'une matière.
-- `templates/notes.html` : affichage de toutes les notes.
-- `templates/tableur.html` : emplacement du futur mode tableur.
-- `static/style.css` : styles de l'interface web.
-- `notes.json` : données persistées localement.
-
-## Modèle des notes
-
-Une note conserve désormais sa valeur et son barème d'origine.
-
-Par exemple :
-
-```json
-{
-  "note": 10,
-  "bareme": 10
-}
-```
-
-représente bien **10/10**, et non une note déjà convertie en 20/20.
-
-La conversion sur /20 est effectuée uniquement pendant le calcul :
-
-```text
-10/10 → 20/20
-5/20  → 5/20
-```
-
-Cela permet d'afficher la note telle qu'elle a été saisie tout en utilisant une échelle commune pour les calculs.
-
-## Architecture
-
-La branche `web-app` suit actuellement cette architecture :
-
-```text
-Navigateur
-    │
-    ▼
-Routes Flask (app.py)
-    │
-    ▼
-Logique métier (gestion_note.py)
-    │
-    ▼
-Persistance (sauvegarde.py)
-    │
-    ▼
-notes.json
-```
-
-Les interfaces ne doivent pas dupliquer les règles de gestion. Les opérations comme l'ajout, la modification, la suppression et le calcul sont centralisées dans la logique métier.
-
-## Installation
-
-### Prérequis
-
-- Python 3.x
-- pip
-
-### Installation
-
-Cloner le dépôt :
-
-```bash
-git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
-cd Calculateur-Moyennes
-```
-
-Installer les dépendances :
-
-```bash
-pip install -r requirements.txt
-```
-
-### Application web
-
-Lancer Flask :
-
-```bash
-python app.py
-```
-
-L'application est ensuite accessible à l'adresse locale indiquée par Flask.
-
-Pour un serveur de production utilisant Gunicorn :
-
-```bash
-gunicorn app:app
-```
-
-### Version terminal
-
-L'ancienne interface CLI reste disponible avec :
+Le dépôt conserve l'ancienne interface Python en ligne de commande. Elle utilise le fichier local `notes.json`, indépendamment des profils web stockés en base de données.
 
 ```bash
 python main.py
 ```
 
-## Déploiement
+Cette commande est destinée à l'utilisation locale de l'ancienne version. Les données CLI dans `notes.json` ne sont pas les données des visiteurs de l'application web Render.
 
-La branche `web-app` est déployée sur Render.
-
-La configuration utilise :
+## Architecture technique
 
 ```text
-Build : pip install -r requirements.txt
-Start : gunicorn app:app
+app.py                  Point d'entrée WSGI : gunicorn app:app
+domaine.py              Validation, règles métier et calculs partagés
+calculateur/
+├── __init__.py         Fabrique Flask et configuration
+├── extensions.py       SQLAlchemy, CSRF et limiteur de débit
+├── models.py           Modèle SQL Visitor
+├── security.py         Identification anonyme et protection admin
+├── services.py         Lecture et sauvegarde du profil courant en base
+└── routes/
+    ├── public.py       Pages web et API de synchronisation
+    └── admin.py        Administration et export
+gestion_note.py         Ancien service métier de la CLI
+sauvegarde.py           Ancienne persistance JSON de la CLI
+cli.py / main.py        Entrée terminale historique
+templates/              Templates Jinja2
+static/style.css        Styles de l'application publique
+static/admin.css        Styles de l'administration
+static/local_storage.js Sauvegarde et synchronisation côté navigateur
+tests/                  Tests automatisés
+docs/                   Architecture, feuille de route et journal
 ```
 
-La persistance actuelle repose encore sur `notes.json`. Une base de données, d'abord SQLite puis éventuellement PostgreSQL, est prévue pour une évolution plus robuste.
+Le module `domaine.py` ne dépend ni de Flask ni du stockage : il regroupe les calculs et validations réutilisés par la CLI et le web. La persistance est séparée : `sauvegarde.py` écrit le fichier JSON historique, alors que `calculateur/services.py` utilise SQLAlchemy pour les profils web.
 
-## Développement
+## Installation locale pour contribuer
 
-Le projet évolue progressivement afin de conserver une base compréhensible et testable à chaque étape.
+Prérequis : Python 3.12 ou version compatible avec les dépendances listées.
 
-Les décisions techniques et les changements importants sont documentés dans :
+```bash
+git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
+cd Calculateur-Moyennes
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt pytest
+python app.py
+```
 
-- `docs/ARCHITECTURE.md`
-- `docs/ROADMAP.md`
-- `docs/JOURNAL.md`
+Sur Windows, l'activation de l'environnement virtuel se fait avec `.venv\\Scripts\\activate`.
 
-### Prochaines étapes
+Par défaut, l'application web locale utilise SQLite dans `calculateur.db`. Pour travailler sur les modifications destinées à Render, utilise une branche de développement et une base de test : ne connecte pas les tests à la base de production.
 
-- Finaliser le mode tableur.
-- Améliorer l'expérience mobile.
-- Ajouter progressivement l'interactivité JavaScript.
-- Étudier le fonctionnement hors ligne.
-- Transformer progressivement l'application en PWA.
-- Remplacer le stockage JSON par une vraie base de données lorsque nécessaire.
-- Ajouter les mesures de sécurité adaptées au déploiement.
+## Déploiement Render
 
-## Historique des versions
+La commande de démarrage actuelle est :
 
-### 2.0.0 — 2026-09-26
-- Transition de l'application terminal vers une interface web Flask.
-- Ajout de l'interface HTML/CSS/Jinja2.
-- Ajout des routes dédiées pour les opérations sur les notes et les matières.
-- Ajout du tableau de bord avec moyenne générale et tableau des matières.
-- Ajout des fenêtres `dialog` pour modifier et supprimer les notes.
-- Ajout de la page dédiée à l'ajout d'une note.
-- Ajout de la prise en charge des notes sur /10 et /20.
-- Conservation du barème original dans les données.
-- Ajout de la détection des matières malgré les espaces superflus et les différences de casse.
-- Ajout de `requirements.txt` et préparation du déploiement avec Gunicorn.
-- Déploiement de la branche `web-app` sur Render.
+```bash
+gunicorn app:app
+```
 
-### 1.2.0 — 2026-06-11
-- Réorganisation du projet en plusieurs modules.
-- Renforcement de la validation des données.
-- Amélioration de la gestion des sauvegardes.
+Le service web de production utilise PostgreSQL via `DATABASE_URL`. Les variables de configuration attendues sont :
 
-### 1.1.0 — 2026-05-21
-- Ajout de la modification d'une note.
-
-### 1.0.0 — 2026-05-20
-- Ajout du menu de modification et de suppression.
-- Suppression d'une matière.
-- Réinitialisation des données.
-- Sauvegarde JSON.
-
-### 0.1.0 — 2026-05-16
-- Première version du calculateur de moyennes.
-
-## Auteur
-
-**Abd-xl**
-
-
-
-
-## Architecture anonyme (branche `feature/admin-dashboard`)
-
-L'interface publique ne demande aucun compte ni mot de passe. Le serveur crée automatiquement un profil anonyme par navigateur à partir d'un jeton aléatoire conservé dans un cookie HTTP-only. La base stocke uniquement le hash du jeton, un identifiant anonyme, le User-Agent déclaré par le navigateur et les notes.
-
-L'espace administrateur est séparé et protégé par `ADMIN_EMAIL` et `ADMIN_PASSWORD`. La base de données de production doit être PostgreSQL via `DATABASE_URL`; SQLite est prévu pour le développement local.
-
-Variables de déploiement :
-- `DATABASE_URL` : URL PostgreSQL persistante.
-- `SECRET_KEY` : secret aléatoire long pour les sessions.
+- `DATABASE_URL` : URL PostgreSQL de production.
+- `SECRET_KEY` : clé secrète longue et aléatoire pour les sessions.
 - `ADMIN_EMAIL` et `ADMIN_PASSWORD` : identifiants de l'espace administrateur.
-- `COOKIE_SECURE=true` : cookies sécurisés sur HTTPS.
+- `COOKIE_SECURE=true` : attribut Secure pour les cookies sur HTTPS.
+- `RATELIMIT_STORAGE_URI` : facultatif. Un stockage partagé est recommandé si plusieurs workers ou instances doivent partager la même limite de débit.
 
-Limites : l'identifiant correspond à un navigateur/profil, pas à une personne réelle. Effacer les cookies, utiliser la navigation privée ou changer de navigateur peut créer un nouvel identifiant. Le User-Agent donne une indication sur le navigateur et parfois le système, mais ne permet pas de connaître avec certitude le nom physique de l'appareil. Aucun historique d'adresse IP n'est conservé. Les notes encore présentes uniquement dans `localStorage` ne seront importées que depuis le navigateur qui les possède.
+Configure ces valeurs dans le tableau de bord Render, jamais dans le code source. Le démarrage en production doit se faire avec Gunicorn, pas avec le serveur de développement Flask. Aucune migration de schéma n'est automatisée par ce dépôt à ce stade.
+
+## Administration et confidentialité
+
+La connexion administrateur est accessible à `/admin/connexion`. Le tableau de bord se trouve à `/admin`.
+
+L'identifiant anonyme correspond à un navigateur/profil, pas à une personne garantie. Effacer le cookie ou utiliser un autre navigateur peut créer un nouveau profil. Le User-Agent est déclaré par le client et ne prouve pas le modèle physique de l'appareil.
+
+## Tests
+
+```bash
+python -m pytest -q
+```
+
+Les tests utilisent SQLite en mémoire et ne doivent jamais viser la base PostgreSQL de production.
+
+Pour la structure et les décisions techniques, consulter `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` et `docs/JOURNAL.md`.

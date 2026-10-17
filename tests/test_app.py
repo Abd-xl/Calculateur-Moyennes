@@ -170,6 +170,9 @@ def test_admin_dashboard_renders_search_cards_and_summary(monkeypatch):
         assert 'class="admin-cards"' in page
         assert 'class="admin-table-wrap"' in page
         assert "Exporter JSON" in page
+        admin_css = client.get("/static/admin.css")
+        assert admin_css.status_code == 200
+        assert ".admin-page" in admin_css.get_data(as_text=True)
 
 
 def test_admin_visitor_detail_renders_profile_metadata(monkeypatch):
@@ -202,3 +205,79 @@ def test_admin_visitor_detail_renders_profile_metadata(monkeypatch):
         assert "Test browser" in page
         assert "Maths" in page
         assert "15/20" in page
+
+def test_public_routes_remain_available_after_refactor():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+
+    assert {"public", "admin"}.issubset(module.app.blueprints)
+    with module.app.test_client() as client:
+        for path in ("/", "/ajouter", "/notes", "/tableur", "/api/etat"):
+            response = client.get(path)
+            assert response.status_code == 200, path
+
+
+def test_admin_missing_visitor_renders_custom_404(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+
+    with module.app.test_client() as client:
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        response = client.get("/admin/utilisateur/999999")
+        assert response.status_code == 404
+        assert "Retour au calculateur" in response.get_data(as_text=True)
+
+
+def test_admin_export_remains_protected_and_returns_json(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+
+    with module.app.test_client() as client:
+        assert client.get("/admin/export.json").status_code == 302
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        response = client.get("/admin/export.json")
+        assert response.status_code == 200
+        assert response.mimetype == "application/json"
+        assert response.headers["Content-Disposition"].startswith("attachment;")
+
+def test_public_actions_reject_negative_note_indexes():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    payload = {
+        "notes": {
+            "Maths": [
+                {"note": 12, "bareme": 20},
+                {"note": 15, "bareme": 20},
+            ]
+        },
+        "coef": {"Maths": 4},
+    }
+
+    with module.app.test_client() as client:
+        assert client.get("/").status_code == 200
+        assert client.post("/api/synchroniser", json=payload).status_code == 200
+
+        modified = client.post("/modifier", data={
+            "matiere": "Maths",
+            "index": "-1",
+            "nouvelle_note": "19",
+        })
+        assert modified.status_code == 302
+        assert client.get("/api/etat").get_json() == payload
+
+        deleted = client.post("/supprimer", data={
+            "matiere": "Maths",
+            "index": "-1",
+        })
+        assert deleted.status_code == 302
+        assert client.get("/api/etat").get_json() == payload

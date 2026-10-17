@@ -6,6 +6,7 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Administration — Calculateur de moyennes</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 </head>
 <body class="admin-page">
   <main class="admin-shell">
@@ -16,8 +17,8 @@
         <p class="admin-subtitle">Vue d’ensemble des profils anonymes enregistrés.</p>
       </div>
       <div class="admin-header__actions">
-        <a class="admin-button admin-button--secondary" href="{{ url_for('admin_export') }}">Exporter JSON</a>
-        <form method="post" action="{{ url_for('admin_logout') }}">
+        <a class="admin-button admin-button--secondary" href="{{ url_for('admin.admin_export') }}">Exporter JSON</a>
+        <form method="post" action="{{ url_for('admin.admin_logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="admin-button admin-button--primary" type="submit">Déconnexion</button>
         </form>
@@ -62,7 +63,7 @@
               <div><span>Matières</span><strong>{{ d.notes|length }}</strong></div>
               <div><span>Dernière activité</span><strong>{{ u.last_seen_at.strftime("%d/%m/%Y à %H:%M") if u.last_seen_at else "—" }}</strong></div>
             </div>
-            <a class="admin-button admin-button--primary visitor-card__action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter le profil <span aria-hidden="true">→</span></a>
+            <a class="admin-button admin-button--primary visitor-card__action" href="{{ url_for('admin.admin_user_detail', user_id=u.id) }}">Consulter le profil <span aria-hidden="true">→</span></a>
           </article>
         {% else %}
           <div class="admin-empty"><h3>Aucun profil enregistré</h3><p>Les profils apparaîtront ici lorsqu’un navigateur utilisera l’application.</p></div>
@@ -81,7 +82,7 @@
                 <td>{{ u.created_at.strftime("%d/%m/%Y %H:%M") if u.created_at else "—" }}</td>
                 <td>{{ u.last_seen_at.strftime("%d/%m/%Y %H:%M") if u.last_seen_at else "—" }}</td>
                 <td>{{ d.notes|length }}</td><td>{{ d.notes.values()|map("length")|sum }}</td>
-                <td><a class="admin-table-action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter</a></td>
+                <td><a class="admin-table-action" href="{{ url_for('admin.admin_user_detail', user_id=u.id) }}">Consulter</a></td>
               </tr>
             {% else %}
               <tr><td colspan="8" class="admin-table-empty">Aucun profil enregistré.</td></tr>
