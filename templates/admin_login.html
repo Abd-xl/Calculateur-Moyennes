@@ -1,1 +1,30 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>Administration — Connexion</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body><main class="section" style="max-width:34rem;margin:3rem auto"><h1>Connexion administrateur</h1>{% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<p class="message">{{ message }}</p>{% endfor %}{% endwith %}<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="email">E-mail administrateur</label><input id="email" name="email" type="email" autocomplete="username" required><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required><button type="submit">Se connecter</button></form></main></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Connexion administrateur</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section class="form-card admin-login-card">
+      <p class="admin-eyebrow">Calculateur de moyennes</p>
+      <h1>Connexion administrateur</h1>
+      <p class="admin-subtitle">Connecte-toi pour consulter les profils anonymes.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <p class="message" role="alert">{{ message }}</p>
+        {% endfor %}
+      {% endwith %}
+      <form method="post" class="app-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-field"><label for="email">E-mail administrateur</label><input id="email" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+        <div class="form-field"><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="form-submit" type="submit">Se connecter</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
