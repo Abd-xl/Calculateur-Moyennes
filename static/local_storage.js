@@ -39,8 +39,27 @@
         }
     }
 
+    // L'ordre des clés d'un objet JSON n'a pas de signification fonctionnelle.
+    // Le normaliser évite des synchronisations/rechargements inutiles si le
+    // navigateur et le serveur sérialisent les mêmes données différemment.
+    function normaliserPourComparaison(value) {
+        if (Array.isArray(value)) {
+            return value.map(normaliserPourComparaison);
+        }
+
+        if (value !== null && typeof value === "object") {
+            return Object.keys(value).sort().reduce((result, key) => {
+                result[key] = normaliserPourComparaison(value[key]);
+                return result;
+            }, {});
+        }
+
+        return value;
+    }
+
     function sameState(first, second) {
-        return JSON.stringify(first) === JSON.stringify(second);
+        return JSON.stringify(normaliserPourComparaison(first))
+            === JSON.stringify(normaliserPourComparaison(second));
     }
 
     function cleanSyncParameter(url) {
@@ -62,6 +81,11 @@
             throw new Error("La synchronisation a échoué.");
         }
 
+        // Le serveur renvoie l'état réellement sauvegardé en base. On le
+        // recopie localement avant de recharger la page pour éviter une boucle
+        // si le serveur a normalisé la représentation JSON.
+        const savedState = await response.json();
+        writeLocalState(savedState);
         window.location.reload();
     }
 
