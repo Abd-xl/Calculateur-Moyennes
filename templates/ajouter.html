@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ajouter une note</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script id="server-state" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
+    <script id="server-state" data-initialized="{{ 'true' if g.visitor.data_initialized else 'false' }}" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
     <script src="{{ url_for('static', filename='local_storage.js') }}" defer></script>
 </head>
 <body>
