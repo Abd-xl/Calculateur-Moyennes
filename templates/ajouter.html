@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ajouter une note</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script id="server-state" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
+    <script id="server-state" data-initialized="{{ 'true' if g.visitor.data_initialized else 'false' }}" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
     <script src="{{ url_for('static', filename='local_storage.js', v='backup-20261017') }}" defer></script>
 </head>
 <body>
@@ -66,6 +67,7 @@
                 </div>
 
                 <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="mode" value="existante">
                     <input type="hidden" name="matiere_existante" value="{{ matiere }}">
 
@@ -102,6 +104,7 @@
 
             <div class="form-card">
                 <form class="app-form" method="POST" action="{{ url_for('ajouter') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="mode" value="nouvelle">
 
                     <div class="form-field">

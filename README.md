@@ -227,3 +227,20 @@ Les décisions techniques et les changements importants sont documentés dans :
 ## Auteur
 
 **Abd-xl**
+
+
+
+
+## Architecture anonyme (branche `feature/admin-dashboard`)
+
+L'interface publique ne demande aucun compte ni mot de passe. Le serveur crée automatiquement un profil anonyme par navigateur à partir d'un jeton aléatoire conservé dans un cookie HTTP-only. La base stocke uniquement le hash du jeton, un identifiant anonyme, le User-Agent déclaré par le navigateur et les notes.
+
+L'espace administrateur est séparé et protégé par `ADMIN_EMAIL` et `ADMIN_PASSWORD`. La base de données de production doit être PostgreSQL via `DATABASE_URL`; SQLite est prévu pour le développement local.
+
+Variables de déploiement :
+- `DATABASE_URL` : URL PostgreSQL persistante.
+- `SECRET_KEY` : secret aléatoire long pour les sessions.
+- `ADMIN_EMAIL` et `ADMIN_PASSWORD` : identifiants de l'espace administrateur.
+- `COOKIE_SECURE=true` : cookies sécurisés sur HTTPS.
+
+Limites : l'identifiant correspond à un navigateur/profil, pas à une personne réelle. Effacer les cookies, utiliser la navigation privée ou changer de navigateur peut créer un nouvel identifiant. Le User-Agent donne une indication sur le navigateur et parfois le système, mais ne permet pas de connaître avec certitude le nom physique de l'appareil. Aucun historique d'adresse IP n'est conservé. Les notes encore présentes uniquement dans `localStorage` ne seront importées que depuis le navigateur qui les possède.

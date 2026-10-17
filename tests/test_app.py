@@ -1,83 +1,151 @@
-import pytest
-
-import app
-import gestion_note
-import sauvegarde
+import app as module
 
 
-@pytest.fixture(autouse=True)
-def etat_propre(monkeypatch):
-    notes_test = {}
-    coef_test = {}
-
-    monkeypatch.setattr(sauvegarde, "notes", notes_test)
-    monkeypatch.setattr(sauvegarde, "coef", coef_test)
-    monkeypatch.setattr(gestion_note, "notes", notes_test)
-    monkeypatch.setattr(gestion_note, "coef", coef_test)
-    monkeypatch.setattr(app, "notes", notes_test)
-    monkeypatch.setattr(app, "coef", coef_test)
-    monkeypatch.setattr(gestion_note, "sauvegarder", lambda: None)
-
-    app.app.config.update(TESTING=True)
+def reset_database():
+    with module.app.app_context():
+        module.db.drop_all()
+        module.db.create_all()
 
 
-def test_supprimer_refuse_un_index_invalide():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/supprimer",
-        data={"matiere": "Maths", "index": "1"},
-    )
-
-    assert response.status_code == 200
-    assert b"Cette note n'existe pas dans cette matiÃ¨re." in response.data
-
-
-def test_modifier_refuse_un_champ_manquant():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/modifier",
-        data={"matiere": "Maths", "index": "0"},
-    )
-
-    assert response.status_code == 200
+def test_visitors_get_separate_automatic_profiles():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    # Ne pas imbriquer deux clients Flask avec des contextes préservés :
+    # leurs piles de contexte peuvent se fermer dans le mauvais ordre.
+    first = module.app.test_client()
+    second = module.app.test_client()
+    assert first.get("/").status_code == 200
+    assert second.get("/").status_code == 200
+    first_state = first.get("/api/etat").get_json()
+    second_state = second.get("/api/etat").get_json()
+    assert first_state == {"notes": {}, "coef": {}}
+    assert second_state == {"notes": {}, "coef": {}}
+    first.post("/api/synchroniser", json={
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    })
+    assert first.get("/api/etat").get_json()["notes"]["Maths"][0]["note"] == 15
+    assert second.get("/api/etat").get_json() == {"notes": {}, "coef": {}}
 
 
-def test_modifier_refuse_une_note_non_numerique():
-    gestion_note.ajouter_note("Maths", 15, 4)
-
-    client = app.app.test_client()
-
-    response = client.post(
-        "/modifier",
-        data={
-            "matiere": "Maths",
-            "index": "0",
-            "nouvelle_note": "abc",
-        },
-    )
-
-    assert response.status_code == 200
+def test_admin_requires_authentication(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+    with module.app.test_client() as client:
+        assert client.get("/admin").status_code == 302
+        response = client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        assert response.status_code == 302
+        assert client.get("/admin").status_code == 200
 
 
-def test_ajouter_refuse_un_mode_invalide():
-    client = app.app.test_client()
 
-    response = client.post(
-        "/ajouter",
-        data={
-            "mode": "invalide",
-            "note": "15",
-            "bareme": "20",
-            "nouvelle_matiere": "Anglais",
-            "coefficient": "3",
-        },
-    )
+def test_admin_login_rate_limit_is_per_ip(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
 
-    assert response.status_code == 200
-    assert b"Mode invalide." in response.data
+    with module.app.test_client() as client:
+        for _ in range(5):
+            response = client.post(
+                "/admin/connexion",
+                data={"email": "wrong@example.com", "password": "wrong-password"},
+                headers={"X-Forwarded-For": "198.51.100.10, 10.0.0.1"},
+            )
+            assert response.status_code == 200
+
+        blocked = client.post(
+            "/admin/connexion",
+            data={"email": "wrong@example.com", "password": "wrong-password"},
+            headers={"X-Forwarded-For": "198.51.100.10, 10.0.0.1"},
+        )
+        assert blocked.status_code == 429
+
+        # Une autre IP cliente ne doit pas hériter du blocage de la première.
+        other_ip = client.post(
+            "/admin/connexion",
+            data={"email": "wrong@example.com", "password": "wrong-password"},
+            headers={"X-Forwarded-For": "198.51.100.11, 10.0.0.1"},
+        )
+        assert other_ip.status_code == 200
+
+def test_invalid_data_is_rejected():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    with module.app.test_client() as client:
+        response = client.post("/api/synchroniser", json={
+            "notes": {"Maths": [{"note": 25, "bareme": 20}]},
+            "coef": {"Maths": 4},
+        })
+        assert response.status_code == 400
+
+def test_initial_sync_persists_browser_data_and_marks_profile_initialized():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    payload = {
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    }
+
+    with module.app.test_client() as client:
+        assert client.get("/").status_code == 200
+        with module.app.app_context():
+            visitor = module.Visitor.query.first()
+            assert visitor is not None
+            assert visitor.data_initialized is False
+
+        response = client.post("/api/synchroniser", json=payload)
+        assert response.status_code == 200
+        assert response.get_json() == payload
+
+        # Vérifier l'état persisté dans la base, puis le relire lors d'une requête distincte.
+        with module.app.app_context():
+            module.db.session.expire_all()
+            visitor = module.Visitor.query.first()
+            assert visitor.data == payload
+            assert visitor.data_initialized is True
+        assert client.get("/api/etat").get_json() == payload
+
+
+def test_empty_initial_sync_marks_profile_initialized():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    empty_state = {"notes": {}, "coef": {}}
+
+    with module.app.test_client() as client:
+        assert client.post("/api/synchroniser", json=empty_state).status_code == 200
+        with module.app.app_context():
+            visitor = module.Visitor.query.first()
+            assert visitor is not None
+            assert visitor.data == empty_state
+            assert visitor.data_initialized is True
+
+
+def test_invalid_sync_does_not_mark_profile_initialized_or_overwrite_data():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    with module.app.test_client() as client:
+        client.get("/")
+        with module.app.app_context():
+            visitor = module.Visitor.query.first()
+            assert visitor.data_initialized is False
+            original_data = dict(visitor.data)
+
+        response = client.post("/api/synchroniser", json={
+            "notes": {"Maths": [{"note": 25, "bareme": 20}]},
+            "coef": {"Maths": 4},
+        })
+
+        assert response.status_code == 400
+        with module.app.app_context():
+            module.db.session.expire_all()
+            visitor = module.Visitor.query.first()
+            assert visitor.data == original_data
+            assert visitor.data_initialized is False
+

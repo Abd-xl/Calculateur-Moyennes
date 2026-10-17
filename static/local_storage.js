@@ -7,6 +7,16 @@
         return;
     }
 
+    function readLocalState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw === null ? null : JSON.parse(raw);
+        } catch (error) {
+            console.warn("Impossible de lire le stockage local.", error);
+            return null;
+        }
+    }
+
     function readRaw(key) {
         try {
             return localStorage.getItem(key);
@@ -25,19 +35,6 @@
         }
     }
 
-    function readLocalState() {
-        const raw = readRaw(STORAGE_KEY);
-        if (raw === null) return null;
-        try {
-            return JSON.parse(raw);
-        } catch (error) {
-            console.warn("Le stockage local contient un JSON invalide ; la copie brute est conservée.", error);
-            return null;
-        }
-    }
-
-    // Avant toute modification, conserver la valeur précédente dans une clé distincte.
-    // Si la sauvegarde échoue, ne pas écraser la valeur originale.
     function preserveBeforeMutation(nextRaw) {
         const previousRaw = readRaw(STORAGE_KEY);
         if (previousRaw === null || previousRaw === nextRaw) return true;
@@ -56,52 +53,19 @@
         }
     }
 
-    function writeLocalState(state) {
-        let raw;
-        try {
-            raw = JSON.stringify(state);
-        } catch (error) {
-            console.warn("Impossible de préparer les données locales.", error);
-            return false;
-        }
-
-        if (!preserveBeforeMutation(raw)) return false;
-
-        try {
-            localStorage.setItem(STORAGE_KEY, raw);
-            return true;
-        } catch (error) {
-            console.warn("Impossible d'écrire dans localStorage ; la copie précédente est conservée.", error);
-            return false;
-        }
-    }
-
-    function cleanSyncParameter(url) {
-        url.searchParams.delete("sync");
-        return url.toString();
-    }
-
     function buildBackupBundle() {
         const raw = readRaw(STORAGE_KEY);
-        const backupRaw = readRaw(BACKUP_KEY);
         let serverState = null;
-
         try {
             serverState = JSON.parse(stateElement.textContent);
         } catch (error) {
             console.warn("Impossible de lire l'état serveur pour l'export.", error);
         }
-
         return {
             format_version: 1,
             exported_at: new Date().toISOString(),
-            note: "Conserve ce fichier hors du navigateur. Il contient les données locales et la dernière copie précédente disponible.",
-            local_storage: {
-                key: STORAGE_KEY,
-                raw,
-                data: parseRaw(raw),
-            },
-            previous_local_backup: parseRaw(backupRaw),
+            local_storage: { key: STORAGE_KEY, raw, data: parseRaw(raw) },
+            previous_local_backup: parseRaw(readRaw(BACKUP_KEY)),
             server_state: serverState,
         };
     }
@@ -109,7 +73,6 @@
     function addBackupButton() {
         const main = document.querySelector("main");
         if (!main || document.getElementById("download-data-backup")) return;
-
         const section = document.createElement("section");
         section.className = "section";
         const button = document.createElement("button");
@@ -121,14 +84,13 @@
         button.style.border = "0";
         button.style.font = "inherit";
         button.style.width = "100%";
-
         const help = document.createElement("p");
         help.className = "action__description";
-        help.textContent = "Exporte les données locales, la dernière copie de sécurité et l'état serveur dans un fichier JSON.";
-
+        help.textContent = "Exporte les données locales, la copie précédente et l'état serveur dans un fichier JSON.";
         button.addEventListener("click", () => {
-            const bundle = buildBackupBundle();
-            const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json;charset=utf-8" });
+            const blob = new Blob([JSON.stringify(buildBackupBundle(), null, 2)], {
+                type: "application/json;charset=utf-8",
+            });
             const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = objectUrl;
@@ -138,24 +100,68 @@
             link.remove();
             URL.revokeObjectURL(objectUrl);
         });
-
         section.appendChild(button);
         section.appendChild(help);
         main.prepend(section);
     }
 
-    async function synchroniserAvecLeServeur(localState) {
+    function writeLocalState(state) {
+        let raw;
+        try {
+            raw = JSON.stringify(state);
+        } catch (error) {
+            console.warn("Impossible de préparer les données locales.", error);
+            return false;
+        }
+        if (!preserveBeforeMutation(raw)) return false;
+        try {
+            localStorage.setItem(STORAGE_KEY, raw);
+            return true;
+        } catch (error) {
+            console.warn("Impossible d'écrire dans localStorage ; la copie précédente est conservée.", error);
+            return false;
+        }
+    }
+
+    // L'ordre des clés JSON n'a pas de signification fonctionnelle.
+    function normaliserPourComparaison(value) {
+        if (Array.isArray(value)) {
+            return value.map(normaliserPourComparaison);
+        }
+        if (value !== null && typeof value === "object") {
+            return Object.keys(value).sort().reduce((result, key) => {
+                result[key] = normaliserPourComparaison(value[key]);
+                return result;
+            }, {});
+        }
+        return value;
+    }
+
+    function sameState(first, second) {
+        return JSON.stringify(normaliserPourComparaison(first))
+            === JSON.stringify(normaliserPourComparaison(second));
+    }
+
+    function cleanSyncParameter(url) {
+        url.searchParams.delete("sync");
+        return url.toString();
+    }
+
+    async function envoyerEtatAuServeur(state) {
         const response = await fetch("/api/synchroniser", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(localState),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "",
+            },
+            body: JSON.stringify(state),
         });
 
         if (!response.ok) {
             throw new Error("La synchronisation a échoué (" + response.status + ").");
         }
 
-        window.location.reload();
+        return response.json();
     }
 
     async function initialiserStockageLocal() {
@@ -168,27 +174,26 @@
         }
 
         const localState = readLocalState();
+        const alreadyInitialized = stateElement.dataset.initialized === "true";
 
-        if (localState === null) {
-            // Si la clé existe mais que son JSON est invalide, ne pas remplacer
-            // la valeur brute : l'export de sauvegarde permettra de la récupérer.
-            if (readRaw(STORAGE_KEY) !== null) return;
-            writeLocalState(serverState);
+        if (!alreadyInitialized) {
+            // Migration unique : on importe l'ancien état du navigateur. Si
+            // aucune copie locale n'existe, on initialise le profil avec l'état serveur.
+            try {
+                const savedState = await envoyerEtatAuServeur(localState ?? serverState);
+                writeLocalState(savedState);
+                window.location.reload();
+            } catch (error) {
+                // Ne jamais effacer la copie locale si l'import échoue.
+                console.warn("Import initial impossible ; les données locales sont conservées.", error);
+            }
             return;
         }
 
-        if (!sameState(localState, serverState)) {
-            try {
-                await synchroniserAvecLeServeur(localState);
-            } catch (error) {
-                // Ne jamais supprimer les données locales en cas d'échec réseau ou serveur.
-                console.warn("Impossible de synchroniser les données ; la copie locale est conservée.", error);
-            }
+        // Après l'import initial, PostgreSQL est la source de vérité.
+        if (localState === null || !sameState(localState, serverState)) {
+            writeLocalState(serverState);
         }
-    }
-
-    function sameState(first, second) {
-        return JSON.stringify(first) === JSON.stringify(second);
     }
 
     async function recupererEtatApresModification() {
@@ -201,15 +206,20 @@
 
     document.addEventListener("submit", async (event) => {
         const form = event.target;
-
-        if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== "post") return;
-        if (form.dataset.nativeSubmit === "true" || form.dataset.submitting === "true") return;
+        if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== "post") {
+            return;
+        }
+        if (form.dataset.nativeSubmit === "true" || form.dataset.submitting === "true") {
+            return;
+        }
 
         event.preventDefault();
         form.dataset.submitting = "true";
 
         const submitButton = form.querySelector('button[type="submit"]');
-        if (submitButton) submitButton.disabled = true;
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
 
         let response;
         try {
@@ -220,7 +230,9 @@
         } catch (error) {
             console.warn("La soumission JavaScript a échoué.", error);
             form.dataset.submitting = "false";
-            if (submitButton) submitButton.disabled = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
             form.dataset.nativeSubmit = "true";
             form.submit();
             return;
@@ -231,10 +243,11 @@
             if (redirectUrl.searchParams.get("sync") !== "0") {
                 try {
                     const state = await recupererEtatApresModification();
-                    // Si la copie de sécurité ou l'écriture échoue, on garde la valeur locale existante.
+                    // En cas d'échec d'écriture, on garde l'ancienne copie :
+                    // la supprimer empêcherait toute récupération locale.
                     writeLocalState(state);
                 } catch (error) {
-                    console.warn("Impossible de mettre à jour le stockage local ; les données existantes sont conservées.", error);
+                    console.warn("Impossible de mettre à jour le stockage local ; aucune donnée locale n'est supprimée.", error);
                 }
             }
             window.location.assign(cleanSyncParameter(redirectUrl));
