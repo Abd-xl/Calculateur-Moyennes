@@ -78,6 +78,8 @@ class Visitor(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     last_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     data = db.Column(db.JSON, nullable=False, default=lambda: {"notes": {}, "coef": {}})
+    # False jusqu’au premier échange réussi : permet d’importer l’ancien localStorage une seule fois.
+    data_initialized = db.Column(db.Boolean, nullable=False, default=False)
 
 
 @app.context_processor
@@ -139,6 +141,7 @@ def current_data():
 def save_data(data):
     _valider_donnees(data)
     g.visitor.data = copy.deepcopy(data)
+    g.visitor.data_initialized = True
     db.session.commit()
 
 
