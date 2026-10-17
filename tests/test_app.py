@@ -149,3 +149,56 @@ def test_invalid_sync_does_not_mark_profile_initialized_or_overwrite_data():
             assert visitor.data == original_data
             assert visitor.data_initialized is False
 
+
+
+def test_admin_dashboard_renders_search_cards_and_summary(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+
+    with module.app.test_client() as client:
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        response = client.get("/admin")
+        assert response.status_code == 200
+        page = response.get_data(as_text=True)
+        assert 'id="visitor-search"' in page
+        assert 'class="admin-stats"' in page
+        assert 'class="admin-cards"' in page
+        assert 'class="admin-table-wrap"' in page
+        assert "Exporter JSON" in page
+
+
+def test_admin_visitor_detail_renders_profile_metadata(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+
+    with module.app.app_context():
+        visitor = module.Visitor(
+            public_id="visitor-test-id",
+            token_hash="a" * 64,
+            browser_info="Test browser",
+            data={"notes": {"Maths": [{"note": 15, "bareme": 20}]}, "coef": {"Maths": 4}},
+            data_initialized=True,
+        )
+        module.db.session.add(visitor)
+        module.db.session.commit()
+        visitor_id = visitor.id
+
+    with module.app.test_client() as client:
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        response = client.get(f"/admin/utilisateur/{visitor_id}")
+        assert response.status_code == 200
+        page = response.get_data(as_text=True)
+        assert "visitor-test-id" in page
+        assert "Test browser" in page
+        assert "Maths" in page
+        assert "15/20" in page

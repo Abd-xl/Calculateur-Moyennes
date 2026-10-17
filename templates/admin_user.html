@@ -1,1 +1,47 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Données visiteur</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body><main class="section"><h1>Données du visiteur {{ user.public_id }}</h1><p>Navigateur : {{ user.browser_info }}</p><p>Première visite : {{ user.created_at }}</p><p>Dernière activité : {{ user.last_seen_at }}</p><p><a href="{{ url_for('admin_dashboard') }}">Retour à l'administration</a></p>{% for m,ns in data.notes.items() %}<section><h2>{{ m }} — coef. {{ data.coef[m] }}</h2><ul>{% for n in ns %}<li>{{ n.note }}/{{ n.bareme }}</li>{% endfor %}</ul></section>{% else %}<p>Aucune note enregistrée.</p>{% endfor %}</main></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profil visiteur — Administration</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <a class="admin-back-link" href="{{ url_for('admin_dashboard') }}">← Retour aux profils</a>
+    <header class="admin-header">
+      <div>
+        <p class="admin-eyebrow">Détail du profil #{{ user.id }}</p>
+        <h1>Profil visiteur</h1>
+        <p class="admin-subtitle">Données associées à cet identifiant anonyme.</p>
+      </div>
+      <a class="admin-button admin-button--secondary" href="{{ url_for('admin_export') }}">Exporter JSON</a>
+    </header>
+
+    <section class="admin-detail-meta" aria-label="Informations du profil">
+      <div><dl><dt>Identifiant anonyme</dt><dd>{{ user.public_id }}</dd></dl></div>
+      <div><dl><dt>Navigateur / appareil</dt><dd>{{ user.browser_info or "Navigateur inconnu" }}</dd></dl></div>
+      <div><dl><dt>Première visite</dt><dd>{{ user.created_at.strftime("%d/%m/%Y à %H:%M") if user.created_at else "—" }}</dd></dl></div>
+      <div><dl><dt>Dernière activité</dt><dd>{{ user.last_seen_at.strftime("%d/%m/%Y à %H:%M") if user.last_seen_at else "—" }}</dd></dl></div>
+    </section>
+
+    <section>
+      <div class="admin-list-heading">
+        <div><h2>Notes enregistrées</h2><p>{{ data.notes|length }} matière(s) dans ce profil.</p></div>
+      </div>
+      {% for m, ns in data.notes.items() %}
+        <article class="admin-detail-subject">
+          <h2>{{ m }} <span class="visitor-badge">Coef. {{ data.coef.get(m, "—") }}</span></h2>
+          {% if ns %}
+            <ul>{% for n in ns %}<li>{{ n.note }}/{{ n.bareme }}</li>{% endfor %}</ul>
+          {% else %}
+            <p class="admin-subtitle">Aucune note dans cette matière.</p>
+          {% endif %}
+        </article>
+      {% else %}
+        <div class="admin-empty"><h3>Aucune note enregistrée</h3><p>Ce profil ne contient actuellement aucune matière ni note.</p></div>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>

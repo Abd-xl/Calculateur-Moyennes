@@ -1,1 +1,114 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>Administration</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body><main class="section"><h1>Espace administrateur</h1><p>Navigateurs enregistrés : <strong>{{ users|length }}</strong></p><p><a href="{{ url_for('admin_export') }}">Exporter toutes les données (JSON)</a></p><form method="post" action="{{ url_for('admin_logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Déconnexion admin</button></form><div class="table-container"><table><thead><tr><th>ID interne</th><th>Identifiant anonyme</th><th>Navigateur / appareil déclaré</th><th>Première visite</th><th>Dernière activité</th><th>Matières</th><th>Notes</th><th></th></tr></thead><tbody>{% for u in users %}{% set d=u.data or {"notes":{},"coef":{}} %}<tr><td>{{ u.id }}</td><td>{{ u.public_id }}</td><td>{{ u.browser_info }}</td><td>{{ u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "—" }}</td><td>{{ u.last_seen_at.strftime("%Y-%m-%d %H:%M") if u.last_seen_at else "—" }}</td><td>{{ d.notes|length }}</td><td>{{ d.notes.values()|map("length")|sum }}</td><td><a href="{{ url_for('admin_user_detail',user_id=u.id) }}">Consulter</a></td></tr>{% else %}<tr><td colspan="8">Aucun visiteur.</td></tr>{% endfor %}</tbody></table></div></main></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Administration — Calculateur de moyennes</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <p class="admin-eyebrow">Calculateur de moyennes</p>
+        <h1>Espace administrateur</h1>
+        <p class="admin-subtitle">Vue d’ensemble des profils anonymes enregistrés.</p>
+      </div>
+      <div class="admin-header__actions">
+        <a class="admin-button admin-button--secondary" href="{{ url_for('admin_export') }}">Exporter JSON</a>
+        <form method="post" action="{{ url_for('admin_logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="admin-button admin-button--primary" type="submit">Déconnexion</button>
+        </form>
+      </div>
+    </header>
+
+    {% set total_notes = namespace(value=0) %}
+    {% set total_subjects = namespace(value=0) %}
+    {% for u in users %}
+      {% set d = u.data or {"notes": {}, "coef": {}} %}
+      {% set total_subjects.value = total_subjects.value + d.notes|length %}
+      {% set total_notes.value = total_notes.value + (d.notes.values()|map("length")|sum) %}
+    {% endfor %}
+
+    <section class="admin-stats" aria-label="Statistiques">
+      <article class="admin-stat"><span class="admin-stat__label">Profils enregistrés</span><strong>{{ users|length }}</strong><span class="admin-stat__hint">Tous navigateurs</span></article>
+      <article class="admin-stat"><span class="admin-stat__label">Matières enregistrées</span><strong>{{ total_subjects.value }}</strong><span class="admin-stat__hint">Cumul des profils</span></article>
+      <article class="admin-stat"><span class="admin-stat__label">Notes enregistrées</span><strong>{{ total_notes.value }}</strong><span class="admin-stat__hint">Cumul des profils</span></article>
+    </section>
+
+    <section class="admin-list-section">
+      <div class="admin-list-heading">
+        <div><h2>Profils visiteurs</h2><p>Les profils les plus récemment actifs apparaissent en premier.</p></div>
+        <span class="admin-count">{{ users|length }} profil(s)</span>
+      </div>
+      <label class="admin-search" for="visitor-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="visitor-search" type="search" placeholder="Rechercher un identifiant ou un navigateur…" autocomplete="off">
+      </label>
+
+      <div class="admin-cards" id="visitor-cards">
+        {% for u in users %}
+          {% set d = u.data or {"notes": {}, "coef": {}} %}
+          {% set note_count = d.notes.values()|map("length")|sum %}
+          <article class="visitor-card" data-search="{{ (u.id|string ~ ' ' ~ u.public_id ~ ' ' ~ u.browser_info)|lower }}">
+            <div class="visitor-card__top">
+              <div><span class="visitor-card__label">Profil #{{ u.id }}</span><h3>{{ u.public_id }}</h3></div>
+              <span class="visitor-badge">{{ note_count }} note(s)</span>
+            </div>
+            <p class="visitor-card__browser">{{ u.browser_info or "Navigateur inconnu" }}</p>
+            <div class="visitor-card__meta">
+              <div><span>Matières</span><strong>{{ d.notes|length }}</strong></div>
+              <div><span>Dernière activité</span><strong>{{ u.last_seen_at.strftime("%d/%m/%Y à %H:%M") if u.last_seen_at else "—" }}</strong></div>
+            </div>
+            <a class="admin-button admin-button--primary visitor-card__action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter le profil <span aria-hidden="true">→</span></a>
+          </article>
+        {% else %}
+          <div class="admin-empty"><h3>Aucun profil enregistré</h3><p>Les profils apparaîtront ici lorsqu’un navigateur utilisera l’application.</p></div>
+        {% endfor %}
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Profil</th><th>Identifiant anonyme</th><th>Navigateur / appareil</th><th>Première visite</th><th>Dernière activité</th><th>Matières</th><th>Notes</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for u in users %}
+              {% set d = u.data or {"notes": {}, "coef": {}} %}
+              <tr data-search="{{ (u.id|string ~ ' ' ~ u.public_id ~ ' ' ~ u.browser_info)|lower }}">
+                <td>#{{ u.id }}</td><td class="admin-id">{{ u.public_id }}</td>
+                <td class="admin-browser">{{ u.browser_info or "Navigateur inconnu" }}</td>
+                <td>{{ u.created_at.strftime("%d/%m/%Y %H:%M") if u.created_at else "—" }}</td>
+                <td>{{ u.last_seen_at.strftime("%d/%m/%Y %H:%M") if u.last_seen_at else "—" }}</td>
+                <td>{{ d.notes|length }}</td><td>{{ d.notes.values()|map("length")|sum }}</td>
+                <td><a class="admin-table-action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="8" class="admin-table-empty">Aucun profil enregistré.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="admin-no-results" id="visitor-no-results" hidden>Aucun profil ne correspond à cette recherche.</p>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const search = document.getElementById("visitor-search");
+      const cards = [...document.querySelectorAll("#visitor-cards .visitor-card")];
+      const rows = [...document.querySelectorAll(".admin-table tbody tr[data-search]")];
+      const noResults = document.getElementById("visitor-no-results");
+      search.addEventListener("input", () => {
+        const query = search.value.trim().toLocaleLowerCase();
+        let visible = 0;
+        for (const item of [...cards, ...rows]) {
+          const match = item.dataset.search.includes(query);
+          item.hidden = !match;
+          if (cards.includes(item) && match) visible += 1;
+        }
+        noResults.hidden = visible !== 0 || cards.length === 0;
+      });
+    })();
+  </script>
+</body>
+</html>
