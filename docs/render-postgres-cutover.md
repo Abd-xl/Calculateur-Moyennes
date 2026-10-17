@@ -57,3 +57,18 @@ Le service web et la base sont dans la même région Frankfurt. L'URL interne ut
 - [Base PostgreSQL](https://dashboard.render.com/d/dpg-db9hqi5g1s2s738p1feg-a)
 
 **Aucune modification Render, migration, fusion ou déploiement n'est effectué par cette procédure.**
+
+## Synchronisation des données du navigateur
+
+Le champ `anonymous_visitors.data_initialized` distingue un profil qui n'a jamais terminé sa première synchronisation d'un profil déjà initialisé.
+
+1. Lors de la première visite avec un profil non initialisé, le navigateur envoie l'état trouvé dans `localStorage` à `/api/synchroniser`. Si aucune copie locale n'existe, il envoie l'état serveur courant, même vide, afin de terminer l'initialisation.
+2. L'API valide les données avant de les enregistrer. Le contenu et le marqueur d'initialisation sont sauvegardés dans la même transaction.
+3. Après cette première synchronisation réussie, l'état du serveur devient la référence. Si une copie locale diffère ensuite, le navigateur la remplace par l'état du serveur au lieu de pousser automatiquement une ancienne copie vers PostgreSQL.
+4. Après les formulaires de modification, le navigateur récupère l'état serveur et actualise sa copie locale. En cas d'échec réseau ou d'écriture locale, le script ne supprime pas volontairement la copie locale.
+
+Cette politique permet de récupérer les données historiques d'un navigateur lors de son premier rattachement à un profil serveur. Elle ne peut pas fusionner automatiquement les données de plusieurs navigateurs : chacun a son propre cookie de profil et son propre `localStorage`.
+
+### Schéma et migration
+
+`db.create_all()` crée la colonne `data_initialized` uniquement lors de la création d'une nouvelle table. Il ne modifie pas une table déjà existante. La base Render inspectée le 17 octobre 2026 ne contenait aucune table, donc la première création de schéma inclura cette colonne. Si la table est créée manuellement ou existe déjà dans un autre environnement, une migration de schéma explicite sera nécessaire avant d'y lancer cette version.
