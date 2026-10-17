@@ -1,5 +1,6 @@
 (() => {
     const STORAGE_KEY = "calculateur-moyennes:data:v1";
+    const BACKUP_KEY = "calculateur-moyennes:data:v1:backup";
     const stateElement = document.getElementById("server-state");
 
     if (!stateElement) {
@@ -16,12 +17,108 @@
         }
     }
 
-    function writeLocalState(state) {
+    function readRaw(key) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            return localStorage.getItem(key);
+        } catch (error) {
+            console.warn("Impossible de lire le stockage local.", error);
+            return null;
+        }
+    }
+
+    function parseRaw(raw) {
+        if (raw === null) return null;
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function preserveBeforeMutation(nextRaw) {
+        const previousRaw = readRaw(STORAGE_KEY);
+        if (previousRaw === null || previousRaw === nextRaw) return true;
+
+        try {
+            localStorage.setItem(BACKUP_KEY, JSON.stringify({
+                saved_at: new Date().toISOString(),
+                storage_key: STORAGE_KEY,
+                raw: previousRaw,
+                data: parseRaw(previousRaw),
+            }));
             return true;
         } catch (error) {
-            console.warn("Impossible d'écrire dans localStorage.", error);
+            console.error("Sauvegarde de sécurité impossible : les données originales ne seront pas écrasées.", error);
+            return false;
+        }
+    }
+
+    function buildBackupBundle() {
+        const raw = readRaw(STORAGE_KEY);
+        let serverState = null;
+        try {
+            serverState = JSON.parse(stateElement.textContent);
+        } catch (error) {
+            console.warn("Impossible de lire l'état serveur pour l'export.", error);
+        }
+        return {
+            format_version: 1,
+            exported_at: new Date().toISOString(),
+            local_storage: { key: STORAGE_KEY, raw, data: parseRaw(raw) },
+            previous_local_backup: parseRaw(readRaw(BACKUP_KEY)),
+            server_state: serverState,
+        };
+    }
+
+    function addBackupButton() {
+        const main = document.querySelector("main");
+        if (!main || document.getElementById("download-data-backup")) return;
+        const section = document.createElement("section");
+        section.className = "section";
+        const button = document.createElement("button");
+        button.id = "download-data-backup";
+        button.type = "button";
+        button.className = "primary-action";
+        button.textContent = "Télécharger une sauvegarde des données";
+        button.style.cursor = "pointer";
+        button.style.border = "0";
+        button.style.font = "inherit";
+        button.style.width = "100%";
+        const help = document.createElement("p");
+        help.className = "action__description";
+        help.textContent = "Exporte les données locales, la copie précédente et l'état serveur dans un fichier JSON.";
+        button.addEventListener("click", () => {
+            const blob = new Blob([JSON.stringify(buildBackupBundle(), null, 2)], {
+                type: "application/json;charset=utf-8",
+            });
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = objectUrl;
+            link.download = "sauvegarde-calculateur-moyennes-" + new Date().toISOString().slice(0, 10) + ".json";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(objectUrl);
+        });
+        section.appendChild(button);
+        section.appendChild(help);
+        main.prepend(section);
+    }
+
+    function writeLocalState(state) {
+        let raw;
+        try {
+            raw = JSON.stringify(state);
+        } catch (error) {
+            console.warn("Impossible de préparer les données locales.", error);
+            return false;
+        }
+        if (!preserveBeforeMutation(raw)) return false;
+        try {
+            localStorage.setItem(STORAGE_KEY, raw);
+            return true;
+        } catch (error) {
+            console.warn("Impossible d'écrire dans localStorage ; la copie précédente est conservée.", error);
             return false;
         }
     }
@@ -163,5 +260,6 @@
         document.close();
     });
 
+    addBackupButton();
     initialiserStockageLocal();
 })();
