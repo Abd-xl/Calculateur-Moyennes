@@ -9,12 +9,7 @@
     function readLocalState() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-
-            if (raw === null) {
-                return null;
-            }
-
-            return JSON.parse(raw);
+            return raw === null ? null : JSON.parse(raw);
         } catch (error) {
             console.warn("Impossible de lire le stockage local.", error);
             return null;
@@ -31,29 +26,17 @@
         }
     }
 
-    function removeLocalState() {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-        } catch (error) {
-            console.warn("Impossible de supprimer le stockage local.", error);
-        }
-    }
-
-    // L'ordre des clés d'un objet JSON n'a pas de signification fonctionnelle.
-    // Le normaliser évite des synchronisations/rechargements inutiles si le
-    // navigateur et le serveur sérialisent les mêmes données différemment.
+    // L'ordre des clés JSON n'a pas de signification fonctionnelle.
     function normaliserPourComparaison(value) {
         if (Array.isArray(value)) {
             return value.map(normaliserPourComparaison);
         }
-
         if (value !== null && typeof value === "object") {
             return Object.keys(value).sort().reduce((result, key) => {
                 result[key] = normaliserPourComparaison(value[key]);
                 return result;
             }, {});
         }
-
         return value;
     }
 
@@ -67,31 +50,25 @@
         return url.toString();
     }
 
-    async function synchroniserAvecLeServeur(localState) {
+    async function envoyerEtatAuServeur(state) {
         const response = await fetch("/api/synchroniser", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "",
             },
-            body: JSON.stringify(localState),
+            body: JSON.stringify(state),
         });
 
         if (!response.ok) {
-            throw new Error("La synchronisation a échoué.");
+            throw new Error("La synchronisation a échoué (" + response.status + ").");
         }
 
-        // Le serveur renvoie l'état réellement sauvegardé en base. On le
-        // recopie localement avant de recharger la page pour éviter une boucle
-        // si le serveur a normalisé la représentation JSON.
-        const savedState = await response.json();
-        writeLocalState(savedState);
-        window.location.reload();
+        return response.json();
     }
 
     async function initialiserStockageLocal() {
         let serverState;
-
         try {
             serverState = JSON.parse(stateElement.textContent);
         } catch (error) {
@@ -100,44 +77,41 @@
         }
 
         const localState = readLocalState();
+        const alreadyInitialized = stateElement.dataset.initialized === "true";
 
-        if (localState === null) {
-            writeLocalState(serverState);
+        if (!alreadyInitialized) {
+            // Migration unique : on importe l'ancien état du navigateur. Si
+            // aucune copie locale n'existe, on initialise le profil avec l'état serveur.
+            try {
+                const savedState = await envoyerEtatAuServeur(localState ?? serverState);
+                writeLocalState(savedState);
+                window.location.reload();
+            } catch (error) {
+                // Ne jamais effacer la copie locale si l'import échoue.
+                console.warn("Import initial impossible ; les données locales sont conservées.", error);
+            }
             return;
         }
 
-        if (!sameState(localState, serverState)) {
-            try {
-                await synchroniserAvecLeServeur(localState);
-            } catch (error) {
-                console.warn("Impossible de synchroniser les données.", error);
-            }
+        // Après l'import initial, PostgreSQL est la source de vérité.
+        if (localState === null || !sameState(localState, serverState)) {
+            writeLocalState(serverState);
         }
     }
 
     async function recupererEtatApresModification() {
-        const response = await fetch("/api/etat", {
-            cache: "no-store",
-        });
-
+        const response = await fetch("/api/etat", { cache: "no-store" });
         if (!response.ok) {
             throw new Error("Impossible de récupérer l'état du serveur.");
         }
-
         return response.json();
     }
 
     document.addEventListener("submit", async (event) => {
         const form = event.target;
-
-        if (!(form instanceof HTMLFormElement)) {
+        if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== "post") {
             return;
         }
-
-        if (form.method.toLowerCase() !== "post") {
-            return;
-        }
-
         if (form.dataset.nativeSubmit === "true" || form.dataset.submitting === "true") {
             return;
         }
@@ -151,7 +125,6 @@
         }
 
         let response;
-
         try {
             response = await fetch(form.action, {
                 method: "POST",
@@ -170,20 +143,16 @@
 
         if (response.redirected) {
             const redirectUrl = new URL(response.url);
-
             if (redirectUrl.searchParams.get("sync") !== "0") {
                 try {
                     const state = await recupererEtatApresModification();
-
-                    if (!writeLocalState(state)) {
-                        removeLocalState();
-                    }
+                    // En cas d'échec d'écriture, on garde l'ancienne copie :
+                    // la supprimer empêcherait toute récupération locale.
+                    writeLocalState(state);
                 } catch (error) {
-                    console.warn("Impossible de mettre à jour le stockage local.", error);
-                    removeLocalState();
+                    console.warn("Impossible de mettre à jour le stockage local ; aucune donnée locale n'est supprimée.", error);
                 }
             }
-
             window.location.assign(cleanSyncParameter(redirectUrl));
             return;
         }
