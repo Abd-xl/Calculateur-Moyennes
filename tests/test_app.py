@@ -43,6 +43,37 @@ def test_admin_requires_authentication(monkeypatch):
         assert client.get("/admin").status_code == 200
 
 
+
+def test_admin_login_rate_limit_is_per_ip(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+
+    with module.app.test_client() as client:
+        for _ in range(5):
+            response = client.post(
+                "/admin/connexion",
+                data={"email": "wrong@example.com", "password": "wrong-password"},
+                environ_base={"REMOTE_ADDR": "198.51.100.10"},
+            )
+            assert response.status_code == 200
+
+        blocked = client.post(
+            "/admin/connexion",
+            data={"email": "wrong@example.com", "password": "wrong-password"},
+            environ_base={"REMOTE_ADDR": "198.51.100.10"},
+        )
+        assert blocked.status_code == 429
+
+        # Une autre IP ne doit pas hériter du blocage de la première.
+        other_ip = client.post(
+            "/admin/connexion",
+            data={"email": "wrong@example.com", "password": "wrong-password"},
+            environ_base={"REMOTE_ADDR": "198.51.100.11"},
+        )
+        assert other_ip.status_code == 200
+
 def test_invalid_data_is_rejected():
     module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
     reset_database()
