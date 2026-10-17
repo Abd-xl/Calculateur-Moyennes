@@ -46,6 +46,7 @@ def test_admin_requires_authentication(monkeypatch):
 
 def test_admin_login_rate_limit_is_per_ip(monkeypatch):
     module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("RENDER", "true")
     monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
     monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
     reset_database()
@@ -55,22 +56,22 @@ def test_admin_login_rate_limit_is_per_ip(monkeypatch):
             response = client.post(
                 "/admin/connexion",
                 data={"email": "wrong@example.com", "password": "wrong-password"},
-                environ_base={"REMOTE_ADDR": "198.51.100.10"},
+                headers={"X-Forwarded-For": "198.51.100.10, 10.0.0.1"},
             )
             assert response.status_code == 200
 
         blocked = client.post(
             "/admin/connexion",
             data={"email": "wrong@example.com", "password": "wrong-password"},
-            environ_base={"REMOTE_ADDR": "198.51.100.10"},
+            headers={"X-Forwarded-For": "198.51.100.10, 10.0.0.1"},
         )
         assert blocked.status_code == 429
 
-        # Une autre IP ne doit pas hériter du blocage de la première.
+        # Une autre IP cliente ne doit pas hériter du blocage de la première.
         other_ip = client.post(
             "/admin/connexion",
             data={"email": "wrong@example.com", "password": "wrong-password"},
-            environ_base={"REMOTE_ADDR": "198.51.100.11"},
+            headers={"X-Forwarded-For": "198.51.100.11, 10.0.0.1"},
         )
         assert other_ip.status_code == 200
 
