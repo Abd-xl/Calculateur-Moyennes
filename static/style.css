@@ -671,10 +671,6 @@ dialog::backdrop {
 
 
 /* Administration : styles isolés pour ne pas modifier les pages publiques. */
-:root {
-    --accent: #3478f6;
-    --accent-hover: #5b91ff;
-}
 .admin-page {
     background: #0b0e14;
 }
