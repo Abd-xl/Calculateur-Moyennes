@@ -1,4 +1,3 @@
-import os
 import app as module
 
 
@@ -11,19 +10,22 @@ def reset_database():
 def test_visitors_get_separate_automatic_profiles():
     module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
     reset_database()
-    with module.app.test_client() as first, module.app.test_client() as second:
-        assert first.get("/").status_code == 200
-        assert second.get("/").status_code == 200
-        first_state = first.get("/api/etat").get_json()
-        second_state = second.get("/api/etat").get_json()
-        assert first_state == {"notes": {}, "coef": {}}
-        assert second_state == {"notes": {}, "coef": {}}
-        first.post("/api/synchroniser", json={
-            "notes": {"Maths": [{"note": 15, "bareme": 20}]},
-            "coef": {"Maths": 4},
-        })
-        assert first.get("/api/etat").get_json()["notes"]["Maths"][0]["note"] == 15
-        assert second.get("/api/etat").get_json() == {"notes": {}, "coef": {}}
+    # Ne pas imbriquer deux clients Flask avec des contextes préservés :
+    # leurs piles de contexte peuvent se fermer dans le mauvais ordre.
+    first = module.app.test_client()
+    second = module.app.test_client()
+    assert first.get("/").status_code == 200
+    assert second.get("/").status_code == 200
+    first_state = first.get("/api/etat").get_json()
+    second_state = second.get("/api/etat").get_json()
+    assert first_state == {"notes": {}, "coef": {}}
+    assert second_state == {"notes": {}, "coef": {}}
+    first.post("/api/synchroniser", json={
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    })
+    assert first.get("/api/etat").get_json()["notes"]["Maths"][0]["note"] == 15
+    assert second.get("/api/etat").get_json() == {"notes": {}, "coef": {}}
 
 
 def test_admin_requires_authentication(monkeypatch):
