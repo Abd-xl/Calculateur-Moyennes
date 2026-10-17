@@ -84,3 +84,63 @@ def test_invalid_data_is_rejected():
             "coef": {"Maths": 4},
         })
         assert response.status_code == 400
+
+def test_initial_sync_persists_browser_data_and_marks_profile_initialized():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    payload = {
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    }
+
+    with module.app.test_client() as client:
+        assert client.get("/").status_code == 200
+        visitor = module.Visitor.query.first()
+        assert visitor is not None
+        assert visitor.data_initialized is False
+
+        response = client.post("/api/synchroniser", json=payload)
+        assert response.status_code == 200
+        assert response.get_json() == payload
+
+        # Vérifier l'état persisté dans la base, puis le relire lors d'une requête distincte.
+        module.db.session.expire_all()
+        visitor = module.Visitor.query.first()
+        assert visitor.data == payload
+        assert visitor.data_initialized is True
+        assert client.get("/api/etat").get_json() == payload
+
+
+def test_empty_initial_sync_marks_profile_initialized():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    empty_state = {"notes": {}, "coef": {}}
+
+    with module.app.test_client() as client:
+        assert client.post("/api/synchroniser", json=empty_state).status_code == 200
+        visitor = module.Visitor.query.first()
+        assert visitor is not None
+        assert visitor.data == empty_state
+        assert visitor.data_initialized is True
+
+
+def test_invalid_sync_does_not_mark_profile_initialized_or_overwrite_data():
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    reset_database()
+    with module.app.test_client() as client:
+        client.get("/")
+        visitor = module.Visitor.query.first()
+        assert visitor.data_initialized is False
+        original_data = dict(visitor.data)
+
+        response = client.post("/api/synchroniser", json={
+            "notes": {"Maths": [{"note": 25, "bareme": 20}]},
+            "coef": {"Maths": 4},
+        })
+
+        assert response.status_code == 400
+        module.db.session.expire_all()
+        visitor = module.Visitor.query.first()
+        assert visitor.data == original_data
+        assert visitor.data_initialized is False
+
