@@ -1,15 +1,11 @@
-import json
 import os
-import tempfile
 
 from calculateur.services.validation import DonneesInvalidesError, validate_data
+from calculateur.repositories.json_file import JsonGradebookRepository, SauvegardeError
 
 notes = {}
 coef = {}
-
-
-class SauvegardeError(RuntimeError):
-    """Levée lorsqu'une sauvegarde des données échoue."""
+_repository = JsonGradebookRepository()
 
 
 def _valider_donnees(data):
@@ -26,49 +22,13 @@ def remplacer_donnees(data):
 
 
 def sauvegarder():
-    chemin_temporaire = None
-
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=".",
-            delete=False,
-        ) as fichier_temporaire:
-            chemin_temporaire = fichier_temporaire.name
-            json.dump(
-                {"notes": notes, "coef": coef},
-                fichier_temporaire,
-            )
-
-        os.replace(chemin_temporaire, "notes.json")
-        print("Données sauvegardées avec succès.")
-
-    except (OSError, TypeError) as erreur:
-        if chemin_temporaire is not None:
-            try:
-                os.remove(chemin_temporaire)
-            except OSError:
-                pass
-
-        raise SauvegardeError(
-            f"Impossible de sauvegarder les données : {erreur}"
-        ) from erreur
+    _repository.save({"notes": notes, "coef": coef})
+    print("Données sauvegardées avec succès.")
 
 
 def charger():
-    try:
-        with open("notes.json", "r", encoding="utf-8") as fichier:
-            try:
-                data = json.load(fichier)
-            except json.JSONDecodeError as erreur:
-                raise DonneesInvalidesError(
-                    f"Le fichier notes.json contient un JSON invalide : {erreur.msg}."
-                ) from erreur
-
-            _valider_donnees(data)
-
-    except FileNotFoundError:
+    data = _repository.load()
+    if data is None:
         notes.clear()
         coef.clear()
         return

@@ -1,24 +1,20 @@
 """Routes publiques du calculateur."""
 
-import copy
-
 from flask import g, jsonify, redirect, render_template, request, url_for
 
 from calculateur.extensions import db
+from calculateur.repositories.visitor_gradebook import load_gradebook, save_gradebook
 from calculateur.services.gradebook import add_note, delete_note, delete_subject, modify_note
 from calculateur.services.grades import calculate_averages
-from calculateur.services.validation import DonneesInvalidesError, validate_data
+from calculateur.services.validation import DonneesInvalidesError
 
 
 def _current_data():
-    return copy.deepcopy(g.visitor.data or {"notes": {}, "coef": {}})
+    return load_gradebook(g.visitor)
 
 
 def _save_data(data):
-    validate_data(data)
-    g.visitor.data = copy.deepcopy(data)
-    g.visitor.data_initialized = True
-    db.session.commit()
+    save_gradebook(g.visitor, data, db.session)
 
 
 def register_public_routes(app):

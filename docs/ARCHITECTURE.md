@@ -10,9 +10,9 @@ Navigateur
           ▼
 Routes publiques ───── Routes admin
           │                  │
-          ├── services métier│
-          ├── hooks visiteur │
-          └── modèles SQLAlchemy
+   ├── services métier│
+   ├── hooks visiteur │
+   └── adaptateur SQLAlchemy
                     │
                     ▼
        anonymous_visitors.data (JSON)
@@ -25,6 +25,11 @@ calculs partagés et `calculateur/services/gradebook.py` les mutations métier
 sans état global. Le CLI conserve `gestion_note.py` comme adaptateur vers le JSON
 local. Les routes publiques et admin sont enregistrées séparément tout en
 conservant les URL et les noms d'endpoint existants.
+
+`calculateur/repositories/visitor_gradebook.py` isole les lectures et écritures
+des données web. `calculateur/repositories/json_file.py` is l'adaptateur du CLI;
+`sauvegarde.py` conserve temporairement l'API historique autour de cet adaptateur.
+Les deux adaptateurs valident le même format métier.
 
 Le format JSON stocké par visiteur reste `{"notes": {...}, "coef": {...}}`.
 `localStorage` sert à récupérer les anciennes données lors de la première
@@ -51,11 +56,9 @@ base ou de déploiement ne fait partie du refactor local.
 1. Extraire la fabrique Flask, les extensions, les modèles, les hooks, les
    groupes de routes et les règles métier tout en gardant les URL, le schéma et
    le point d'entrée.
-2. Formaliser la frontière de persistance entre le CLI JSON et le web
-   SQLAlchemy.
-3. Introduire des migrations de base et un modèle relationnel de matières et de
+2. Introduire des migrations de base et un modèle relationnel de matières et de
    notes, avec une migration réversible depuis le JSON existant.
-4. Définir une stratégie de synchronisation versionnée pour détecter les
+3. Définir une stratégie de synchronisation versionnée pour détecter les
    modifications simultanées venant de plusieurs onglets ou appareils.
 
 Les étapes 3 et 4 nécessitent une sauvegarde et une procédure de migration avant

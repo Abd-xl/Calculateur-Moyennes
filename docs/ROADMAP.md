@@ -15,7 +15,8 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [x] Partager le calcul des moyennes entre l'application web et le CLI.
 - [x] Extraire calculs et mutations des notes dans des services métier sans état global.
 - [x] Déplacer la validation des données dans un service métier partagé.
-- [ ] Formaliser les adaptateurs de persistance JSON du CLI et SQLAlchemy du web.
+- [x] Formaliser les adaptateurs JSON du CLI et SQLAlchemy du web derrière une
+  API de persistance séparée.
 - [ ] Ajouter des migrations de schéma et normaliser matières et notes.
 - [ ] Migrer les profils JSON avec sauvegarde, reprise et contrôle des totaux.
 - [ ] Versionner l'état pour repérer les conflits de synchronisation.

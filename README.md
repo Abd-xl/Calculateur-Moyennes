@@ -46,6 +46,7 @@ Cette version marque la transition du projet vers une application web Flask.
 │   ├── routes/
 │   │   ├── public.py                Pages et API publiques
 │   │   └── admin.py                 Espace administrateur
+│   ├── repositories/                Adaptateurs JSON et SQLAlchemy
 │   └── services/                     Calculs et mutations métier partagés
 ├── gestion_note.py
 ├── sauvegarde.py
