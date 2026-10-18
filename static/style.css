@@ -803,6 +803,17 @@ dialog::backdrop {
 }
 .admin-search input::placeholder { color: #7d899d; }
 .admin-search:focus-within { border-color: #3478f6; box-shadow: 0 0 0 3px rgb(52 120 246 / 14%); }
+.admin-search .admin-button { flex-shrink: 0; }
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    color: #b0bacb;
+    font-size: .9rem;
+}
+.admin-pagination a { text-decoration: none; }
 .admin-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .visitor-card {
     min-width: 0;

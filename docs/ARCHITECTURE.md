@@ -10,12 +10,13 @@ Navigateur
           ▼
 Routes publiques ───── Routes admin
           │                  │
-   ├── services métier│
-   ├── hooks visiteur │
+   ├── services métier│      ├── agrégats SQL paginés
+   ├── hooks visiteur │      └── adaptateur gradebook
    └── adaptateur SQLAlchemy
                     │
                     ▼
-       anonymous_visitors.data (JSON)
+      visiteurs, matières et notes
+          └── JSON de compatibilité
 ```
 
 Le point d'entrée historique `app.py` expose toujours `app:app` pour Gunicorn.
@@ -30,6 +31,10 @@ conservant les URL et les noms d'endpoint existants.
 des données web. `calculateur/repositories/json_file.py` is l'adaptateur du CLI;
 `sauvegarde.py` conserve temporairement l'API historique autour de cet adaptateur.
 Les deux adaptateurs valident le même format métier.
+
+L'administration filtre et pagine les visiteurs en base. Ses compteurs globaux
+et les nombres de matières/notes par profil sont agrégés depuis les tables
+relationnelles; les détails et l'export passent par l'adaptateur gradebook.
 
 Le format JSON stocké par visiteur reste `{"notes": {...}, "coef": {...}}`.
 `localStorage` sert à récupérer les anciennes données lors de la première

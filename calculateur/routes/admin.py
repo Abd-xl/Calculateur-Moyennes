@@ -5,11 +5,16 @@ import io
 import json
 import os
 
+from sqlalchemy import String, cast, func, or_, select
+from sqlalchemy.orm import selectinload
 from flask import abort, flash, redirect, render_template, request, send_file, session, url_for
 
 from calculateur.extensions import db, limiter
-from calculateur.models import Visitor, utcnow
+from calculateur.models import Grade, Subject, Visitor, utcnow
+from calculateur.repositories.visitor_gradebook import load_gradebook
 from calculateur.security import admin_required
+
+ADMIN_PAGE_SIZE = 25
 
 
 def register_admin_routes(app):
@@ -40,8 +45,66 @@ def register_admin_routes(app):
     @app.route("/admin")
     @admin_required
     def admin_dashboard():
-        visitors = Visitor.query.order_by(Visitor.last_seen_at.desc()).all()
-        return render_template("admin.html", users=visitors)
+        search = request.args.get("q", "").strip()[:128]
+        query = Visitor.query
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    cast(Visitor.id, String).ilike(pattern),
+                    Visitor.public_id.ilike(pattern),
+                    Visitor.browser_info.ilike(pattern),
+                )
+            )
+
+        result_count = query.count()
+        total_pages = max(1, (result_count + ADMIN_PAGE_SIZE - 1) // ADMIN_PAGE_SIZE)
+        page = min(max(request.args.get("page", 1, type=int) or 1, 1), total_pages)
+        visitors = (
+            query.order_by(Visitor.last_seen_at.desc(), Visitor.id.desc())
+            .limit(ADMIN_PAGE_SIZE)
+            .offset((page - 1) * ADMIN_PAGE_SIZE)
+            .all()
+        )
+
+        totals = db.session.execute(
+            select(
+                select(func.count()).select_from(Visitor).scalar_subquery(),
+                select(func.count()).select_from(Subject).scalar_subquery(),
+                select(func.count()).select_from(Grade).scalar_subquery(),
+            )
+        ).one()
+
+        visitor_stats = {}
+        visitor_ids = [visitor.id for visitor in visitors]
+        if visitor_ids:
+            rows = db.session.execute(
+                select(
+                    Subject.visitor_id,
+                    func.count(func.distinct(Subject.id)),
+                    func.count(Grade.id),
+                )
+                .outerjoin(Grade, Grade.subject_id == Subject.id)
+                .where(Subject.visitor_id.in_(visitor_ids))
+                .group_by(Subject.visitor_id)
+            )
+            visitor_stats = {
+                visitor_id: {"subjects": subject_count, "grades": grade_count}
+                for visitor_id, subject_count, grade_count in rows
+            }
+
+        return render_template(
+            "admin.html",
+            users=visitors,
+            visitor_stats=visitor_stats,
+            total_visitors=totals[0],
+            total_subjects=totals[1],
+            total_notes=totals[2],
+            result_count=result_count,
+            page=page,
+            total_pages=total_pages,
+            search=search,
+        )
 
     @app.route("/admin/utilisateur/<int:user_id>")
     @admin_required
@@ -50,7 +113,7 @@ def register_admin_routes(app):
         if visitor is None:
             abort(404)
         return render_template(
-            "admin_user.html", user=visitor, data=visitor.data or {"notes": {}, "coef": {}}
+            "admin_user.html", user=visitor, data=load_gradebook(visitor)
         )
 
     @app.route("/admin/export.json")
@@ -65,9 +128,13 @@ def register_admin_routes(app):
                     "browser_info": visitor.browser_info,
                     "created_at": visitor.created_at.isoformat() if visitor.created_at else None,
                     "last_seen_at": visitor.last_seen_at.isoformat() if visitor.last_seen_at else None,
-                    "data": visitor.data or {"notes": {}, "coef": {}},
+                    "data": load_gradebook(visitor),
                 }
-                for visitor in Visitor.query.order_by(Visitor.id).all()
+                for visitor in db.session.scalars(
+                    select(Visitor)
+                    .options(selectinload(Visitor.subjects).selectinload(Subject.grades))
+                    .order_by(Visitor.id)
+                )
             ],
         }
         file = io.BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"))

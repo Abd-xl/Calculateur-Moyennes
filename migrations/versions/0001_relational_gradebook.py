@@ -145,9 +145,9 @@ def upgrade():
                     name=name,
                     coefficient=coefficient,
                     position=subject_position,
-                )
+                ).returning(subjects.c.id)
             )
-            subject_id = result.inserted_primary_key[0]
+            subject_id = result.scalar_one()
             for grade_position, grade in enumerate(subject_notes):
                 if not isinstance(grade, dict) or set(grade) != {"note", "bareme"}:
                     raise RuntimeError(f"Profil {visitor['id']}: note mal structurée en {name!r}.")

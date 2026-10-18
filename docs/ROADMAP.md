@@ -22,7 +22,7 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [ ] Retirer la copie JSON après la période de compatibilité.
 - [ ] Migrer les profils JSON avec sauvegarde, reprise et contrôle des totaux.
 - [ ] Versionner l'état pour repérer les conflits de synchronisation.
-- [ ] Paginer l'admin et calculer les totaux côté base.
+- [x] Paginer l'admin, filtrer côté base et calculer les totaux côté base.
 - [ ] Définir conservation, export et suppression des données visiteurs.
 
 ## Contraintes
