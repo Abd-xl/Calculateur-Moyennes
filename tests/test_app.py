@@ -1,6 +1,7 @@
 import app as module
 import calculateur.routes.admin as admin_routes
 from calculateur.repositories.visitor_gradebook import save_gradebook
+from calculateur.models import Grade, Subject
 from calculateur.services.gradebook_audit import audit_gradebooks
 
 
@@ -193,10 +194,14 @@ def test_admin_dashboard_renders_search_cards_and_summary(monkeypatch):
     reset_database()
 
     with module.app.test_client() as client:
-        client.post("/admin/connexion", data={
-            "email": "admin@example.com",
-            "password": "long-test-admin-password",
-        })
+        client.post(
+            "/admin/connexion",
+            data={
+                "email": "admin@example.com",
+                "password": "long-test-admin-password",
+            },
+            environ_base={"REMOTE_ADDR": "198.51.100.42"},
+        )
         response = client.get("/admin")
         assert response.status_code == 200
         page = response.get_data(as_text=True)
@@ -228,10 +233,14 @@ def test_admin_dashboard_filters_and_paginates_in_database(monkeypatch):
         module.db.session.commit()
 
     with module.app.test_client() as client:
-        client.post("/admin/connexion", data={
-            "email": "admin@example.com",
-            "password": "long-test-admin-password",
-        })
+        client.post(
+            "/admin/connexion",
+            data={
+                "email": "admin@example.com",
+                "password": "long-test-admin-password",
+            },
+            environ_base={"REMOTE_ADDR": "198.51.100.43"},
+        )
         first_page = client.get("/admin")
         assert first_page.status_code == 200
         assert "Page 1 sur 2" in first_page.get_data(as_text=True)
@@ -349,10 +358,14 @@ def test_admin_can_delete_visitor_and_cascaded_gradebook(monkeypatch):
 
     with module.app.test_client() as client:
         assert client.post(f"/admin/utilisateur/{visitor_id}/supprimer").status_code == 302
-        client.post("/admin/connexion", data={
-            "email": "admin@example.com",
-            "password": "long-test-admin-password",
-        })
+        client.post(
+            "/admin/connexion",
+            data={
+                "email": "admin@example.com",
+                "password": "long-test-admin-password",
+            },
+            environ_base={"REMOTE_ADDR": "198.51.100.44"},
+        )
         assert client.get(f"/admin/utilisateur/{visitor_id}/supprimer").status_code == 405
         response = client.post(f"/admin/utilisateur/{visitor_id}/supprimer")
         assert response.status_code == 302
@@ -360,8 +373,8 @@ def test_admin_can_delete_visitor_and_cascaded_gradebook(monkeypatch):
 
     with module.app.app_context():
         assert module.db.session.get(module.Visitor, visitor_id) is None
-        assert module.Subject.query.count() == 0
-        assert module.Grade.query.count() == 0
+        assert Subject.query.count() == 0
+        assert Grade.query.count() == 0
 
 
 def test_admin_export_streams_profiles_in_keyset_batches(monkeypatch):
@@ -385,10 +398,14 @@ def test_admin_export_streams_profiles_in_keyset_batches(monkeypatch):
         module.db.session.commit()
 
     with module.app.test_client() as client:
-        client.post("/admin/connexion", data={
-            "email": "admin@example.com",
-            "password": "long-test-admin-password",
-        })
+        client.post(
+            "/admin/connexion",
+            data={
+                "email": "admin@example.com",
+                "password": "long-test-admin-password",
+            },
+            environ_base={"REMOTE_ADDR": "198.51.100.45"},
+        )
         response = client.get("/admin/export.json")
         assert response.status_code == 200
         assert response.headers["Cache-Control"] == "no-store"
