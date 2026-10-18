@@ -1,11 +1,17 @@
 from datetime import datetime
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+
+import app as app_module
+from calculateur.extensions import db
+from calculateur.models import Visitor
+from calculateur.startup_migration import migrate_and_audit_database
 
 
 MIGRATION_PATH = (
@@ -104,3 +110,112 @@ def test_migration_copies_valid_profiles_and_keeps_legacy_json():
             sa.select(visitors.c.data).where(visitors.c.id == 1)
         ) == data
     engine.dispose()
+
+
+def _legacy_application_database(data):
+    app_module.app.config.update(TESTING=True, AUTO_CREATE_DB=False)
+    with app_module.app.app_context():
+        db.drop_all()
+        with db.engine.begin() as connection:
+            connection.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
+            connection.exec_driver_sql(
+                """
+                CREATE TABLE anonymous_visitors (
+                    id INTEGER PRIMARY KEY,
+                    public_id VARCHAR(36) NOT NULL UNIQUE,
+                    token_hash VARCHAR(64) NOT NULL UNIQUE,
+                    browser_info VARCHAR(512) NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    last_seen_at DATETIME NOT NULL,
+                    data JSON NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                sa.text(
+                    """INSERT INTO anonymous_visitors
+                       (id, public_id, token_hash, browser_info, created_at,
+                        last_seen_at, data)
+                       VALUES (1, 'public-id', 'token-hash', 'test',
+                               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :data)"""
+                ),
+                {"data": json.dumps(data)},
+            )
+
+
+def test_startup_migration_converts_and_audits_legacy_profile():
+    data = {
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 3},
+    }
+    _legacy_application_database(data)
+
+    migrate_and_audit_database(app_module.app)
+
+    with app_module.app.app_context():
+        visitor = db.session.get(Visitor, 1)
+        assert visitor.data == data
+        assert visitor.data_initialized is False
+        assert [(subject.name, subject.coefficient) for subject in visitor.subjects] == [
+            ("Maths", 3)
+        ]
+        assert [grade.value for grade in visitor.subjects[0].grades] == [15]
+
+
+def test_startup_preflight_failure_leaves_legacy_schema_untouched():
+    invalid = {"notes": {"Maths": [{"note": 25, "bareme": 20}]}, "coef": {"Maths": 3}}
+    _legacy_application_database(invalid)
+
+    with pytest.raises(RuntimeError, match="annulée avant toute écriture"):
+        migrate_and_audit_database(app_module.app)
+
+    with app_module.app.app_context():
+        tables = sa.inspect(db.engine).get_table_names()
+        assert "subjects" not in tables
+        assert "grades" not in tables
+        assert "data_initialized" not in {
+            column["name"]
+            for column in sa.inspect(db.engine).get_columns("anonymous_visitors")
+        }
+
+
+def test_render_app_runs_migration_before_returning(monkeypatch):
+    from calculateur import create_app
+    import calculateur.startup_migration as startup_migration
+
+    migrated_apps = []
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("SECRET_KEY", "test-render-secret")
+    monkeypatch.setattr(
+        startup_migration,
+        "migrate_and_audit_database",
+        migrated_apps.append,
+    )
+
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"})
+
+    assert migrated_apps == [app]
+
+
+def test_auto_migration_can_be_disabled_explicitly(monkeypatch):
+    from calculateur import create_app
+    import calculateur.startup_migration as startup_migration
+
+    migrated_apps = []
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setenv("SECRET_KEY", "test-render-secret")
+    monkeypatch.setattr(
+        startup_migration,
+        "migrate_and_audit_database",
+        migrated_apps.append,
+    )
+
+    create_app(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "AUTO_MIGRATE_DB": False,
+        }
+    )
+
+    assert migrated_apps == []

@@ -9,6 +9,12 @@ tables and adds a gradebook concurrency version. Downgrade base removes the
 relational tables and added version column while leaving the legacy JSON in
 place; application writes keep it synchronized during the compatibility window.
 
+On Render, application startup runs the read-only preflight, `upgrade head`,
+and the gradebook audit before serving requests. Set `AUTO_MIGRATE_DB=false`
+only when an operator intentionally needs to prevent startup migrations.
+Invalid legacy profiles stop startup before schema changes. The JSON column is
+preserved as the recovery copy throughout the migration.
+
 On a disposable copy of the target database, run the read-only JSON preflight
 before the migration:
 

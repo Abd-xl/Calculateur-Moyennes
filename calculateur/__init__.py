@@ -24,6 +24,7 @@ def create_app(test_config=None):
     from calculateur.request_hooks import register_request_hooks
     from calculateur.routes.admin import register_admin_routes
     from calculateur.routes.public import register_public_routes
+    from calculateur.startup_migration import migrate_and_audit_database
 
     secret = os.environ.get("SECRET_KEY")
     if os.environ.get("RENDER") == "true" and not secret:
@@ -72,6 +73,19 @@ def create_app(test_config=None):
     if app.config.get("AUTO_CREATE_DB"):
         with app.app_context():
             db.create_all()
+
+    # Render injects RENDER=true. Running the migration before Gunicorn accepts
+    # requests removes the separate, easy-to-forget production migration step.
+    # Set AUTO_MIGRATE_DB=false only for an intentional maintenance/rollback.
+    auto_migrate = app.config.get(
+        "AUTO_MIGRATE_DB",
+        os.environ.get("AUTO_MIGRATE_DB", "true" if os.environ.get("RENDER") == "true" else "false").lower()
+        == "true",
+    )
+    if auto_migrate:
+        if app.config.get("AUTO_CREATE_DB"):
+            raise RuntimeError("AUTO_CREATE_DB et AUTO_MIGRATE_DB ne peuvent pas être utilisés ensemble.")
+        migrate_and_audit_database(app)
 
     return app
 

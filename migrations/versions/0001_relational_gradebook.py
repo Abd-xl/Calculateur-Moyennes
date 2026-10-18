@@ -99,6 +99,12 @@ def upgrade():
     inspector = sa.inspect(bind)
     migration_data = []
     if "anonymous_visitors" in inspector.get_table_names():
+        # Block legacy application writes while the source JSON is copied. The
+        # lock is held until Alembic commits the schema and data together.
+        if bind.dialect.name == "postgresql":
+            bind.exec_driver_sql(
+                "LOCK TABLE anonymous_visitors IN ACCESS EXCLUSIVE MODE"
+            )
         columns = {column["name"] for column in inspector.get_columns("anonymous_visitors")}
         missing = {"id", "data"} - columns
         if missing:
