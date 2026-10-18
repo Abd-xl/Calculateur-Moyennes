@@ -239,6 +239,63 @@ main {
     background: var(--surface);
 }
 
+.recovery-section {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.recovery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.recovery-actions .primary-action,
+.recovery-button {
+    width: auto;
+    min-height: 42px;
+    padding: 9px 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--background);
+    font: inherit;
+    font-size: 0.9rem;
+}
+
+.recovery-actions .primary-action:hover,
+.recovery-button:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+}
+
+.recovery-help {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.recovery-status {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--background);
+    line-height: 1.5;
+}
+
+.recovery-status[hidden],
+.recovery-button[hidden] {
+    display: none;
+}
+
+.recovery-section > .recovery-button {
+    margin-top: 8px;
+}
+
 .page-intro {
     margin-bottom: 20px;
 }

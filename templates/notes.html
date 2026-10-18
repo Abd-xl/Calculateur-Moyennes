@@ -7,7 +7,7 @@
     <title>Toutes les notes</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script id="server-state" data-initialized="{{ 'true' if g.visitor.data_initialized else 'false' }}" data-version="{{ g.visitor.gradebook_version }}" type="application/json">{{ {"notes": notes, "coef": coef}|tojson }}</script>
-    <script src="{{ url_for('static', filename='local_storage.js', v='versioned-sync-20261018') }}" defer></script>
+    <script src="{{ url_for('static', filename='local_storage.js', v='recovery-sync-20261018') }}" defer></script>
 </head>
 <body>
     <header class="app-header">
