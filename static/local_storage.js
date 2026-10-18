@@ -147,18 +147,26 @@
         return url.toString();
     }
 
-    async function envoyerEtatAuServeur(state) {
+    async function envoyerEtatAuServeur(state, version) {
         const response = await fetch("/api/synchroniser", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": document.querySelector('meta[name="csrf-token"]')?.content || "",
+                "If-Match": '"' + version + '"',
             },
             body: JSON.stringify(state),
         });
 
         if (!response.ok) {
-            throw new Error("La synchronisation a échoué (" + response.status + ").");
+            const error = new Error("La synchronisation a échoué (" + response.status + ").");
+            error.status = response.status;
+            try {
+                error.payload = await response.json();
+            } catch (parseError) {
+                error.payload = null;
+            }
+            throw error;
         }
 
         return response.json();
@@ -180,10 +188,19 @@
             // Migration unique : on importe l'ancien état du navigateur. Si
             // aucune copie locale n'existe, on initialise le profil avec l'état serveur.
             try {
-                const savedState = await envoyerEtatAuServeur(localState ?? serverState);
+                const savedState = await envoyerEtatAuServeur(
+                    localState ?? serverState,
+                    stateElement.dataset.version
+                );
                 writeLocalState(savedState);
                 window.location.reload();
             } catch (error) {
+                if (error.status === 409 && error.payload?.data) {
+                    writeLocalState(error.payload.data);
+                    window.alert("Ce profil a été synchronisé ailleurs. Les données serveur les plus récentes sont chargées; vérifie-les avant de continuer.");
+                    window.location.reload();
+                    return;
+                }
                 // Ne jamais effacer la copie locale si l'import échoue.
                 console.warn("Import initial impossible ; les données locales sont conservées.", error);
             }
@@ -225,6 +242,9 @@
         try {
             response = await fetch(form.action, {
                 method: "POST",
+                headers: {
+                    "If-Match": '"' + stateElement.dataset.version + '"',
+                },
                 body: new FormData(form),
             });
         } catch (error) {
@@ -235,6 +255,21 @@
             }
             form.dataset.nativeSubmit = "true";
             form.submit();
+            return;
+        }
+
+        if (response.status === 409) {
+            let conflict;
+            try {
+                conflict = await response.json();
+            } catch (error) {
+                conflict = null;
+            }
+            if (conflict?.data) {
+                writeLocalState(conflict.data);
+            }
+            window.alert("Ce profil a changé dans un autre onglet ou appareil. Les dernières données ont été rechargées; recommence ta modification.");
+            window.location.reload();
             return;
         }
 

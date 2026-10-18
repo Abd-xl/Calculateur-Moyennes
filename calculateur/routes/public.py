@@ -3,7 +3,11 @@
 from flask import g, jsonify, redirect, render_template, request, url_for
 
 from calculateur.extensions import db
-from calculateur.repositories.visitor_gradebook import load_gradebook, save_gradebook
+from calculateur.repositories.visitor_gradebook import (
+    GradebookConflictError,
+    load_gradebook,
+    save_gradebook,
+)
 from calculateur.services.gradebook import add_note, delete_note, delete_subject, modify_note
 from calculateur.services.grades import calculate_averages
 from calculateur.services.validation import DonneesInvalidesError
@@ -13,8 +17,36 @@ def _current_data():
     return load_gradebook(g.visitor)
 
 
+def _expected_version():
+    value = request.headers.get("If-Match") or request.form.get("_version")
+    if value is None:
+        # Keep older API clients working; the bundled browser always sends a version.
+        return g.visitor.gradebook_version
+    try:
+        return int(value.strip().strip('"'))
+    except (AttributeError, ValueError) as error:
+        raise ValueError("Version de synchronisation invalide.") from error
+
+
 def _save_data(data):
-    save_gradebook(g.visitor, data, db.session)
+    return save_gradebook(g.visitor, data, db.session, _expected_version())
+
+
+def _conflict_response():
+    db.session.rollback()
+    db.session.refresh(g.visitor)
+    response = jsonify(
+        {
+            "error": "version_conflict",
+            "message": "Les données ont changé ailleurs. Rechargez-les avant de réessayer.",
+            "data": _current_data(),
+            "version": g.visitor.gradebook_version,
+        }
+    )
+    response.status_code = 409
+    response.headers["ETag"] = f'"{g.visitor.gradebook_version}"'
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def register_public_routes(app):
@@ -32,6 +64,7 @@ def register_public_routes(app):
     def etat_api():
         response = jsonify(_current_data())
         response.headers["Cache-Control"] = "no-store"
+        response.headers["ETag"] = f'"{g.visitor.gradebook_version}"'
         return response
 
     @app.route("/api/synchroniser", methods=["POST"])
@@ -41,11 +74,14 @@ def register_public_routes(app):
             return jsonify({"error": "Données invalides."}), 400
         try:
             _save_data(data)
-        except (DonneesInvalidesError, TypeError) as erreur:
+        except GradebookConflictError:
+            return _conflict_response()
+        except (DonneesInvalidesError, TypeError, ValueError) as erreur:
             db.session.rollback()
             return jsonify({"error": str(erreur)}), 400
         response = jsonify(_current_data())
         response.headers["Cache-Control"] = "no-store"
+        response.headers["ETag"] = f'"{g.visitor.gradebook_version}"'
         return response
 
     @app.route("/ajouter", methods=["GET", "POST"])
@@ -71,6 +107,8 @@ def register_public_routes(app):
             matiere = add_note(data, matiere, note, coefficient, bareme)
             _save_data(data)
             return redirect(url_for("accueil", message=f"Note ajoutée : {matiere} — {note:g}/{bareme}"))
+        except GradebookConflictError:
+            return _conflict_response()
         except (KeyError, TypeError, ValueError, DonneesInvalidesError) as erreur:
             db.session.rollback()
             data = _current_data()
@@ -94,6 +132,8 @@ def register_public_routes(app):
         try:
             delete_note(data, request.form["matiere"], int(request.form["index"]))
             _save_data(data)
+        except GradebookConflictError:
+            return _conflict_response()
         except (KeyError, IndexError, TypeError, ValueError, DonneesInvalidesError):
             db.session.rollback()
         return redirect(url_for("accueil"))
@@ -105,6 +145,8 @@ def register_public_routes(app):
             nouvelle_note = float(request.form["nouvelle_note"])
             modify_note(data, request.form["matiere"], int(request.form["index"]), nouvelle_note)
             _save_data(data)
+        except GradebookConflictError:
+            return _conflict_response()
         except (KeyError, IndexError, TypeError, ValueError, DonneesInvalidesError):
             db.session.rollback()
         return redirect(url_for("accueil"))
@@ -115,6 +157,8 @@ def register_public_routes(app):
         try:
             delete_subject(data, request.form["matiere"])
             _save_data(data)
+        except GradebookConflictError:
+            return _conflict_response()
         except (KeyError, TypeError, ValueError, DonneesInvalidesError):
             db.session.rollback()
         return redirect(url_for("accueil"))

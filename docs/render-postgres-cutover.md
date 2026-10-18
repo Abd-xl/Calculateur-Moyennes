@@ -72,13 +72,16 @@ Le champ `anonymous_visitors.data_initialized` distingue un profil qui n'a jamai
 2. L'API valide les données avant de les enregistrer. Le contenu et le marqueur d'initialisation sont sauvegardés dans la même transaction.
 3. Après cette première synchronisation réussie, l'état du serveur devient la référence. Si une copie locale diffère ensuite, le navigateur la remplace par l'état du serveur au lieu de pousser automatiquement une ancienne copie vers PostgreSQL.
 4. Après les formulaires de modification, le navigateur récupère l'état serveur et actualise sa copie locale. En cas d'échec réseau ou d'écriture locale, le script ne supprime pas volontairement la copie locale.
+5. Chaque page porte la version du carnet; les écritures comparent cette version à celle en base. Une version périmée reçoit HTTP 409, l'état serveur est rechargé et la modification doit être rejouée.
 
 Cette politique permet de récupérer les données historiques d'un navigateur lors de son premier rattachement à un profil serveur. Elle ne peut pas fusionner automatiquement les données de plusieurs navigateurs : chacun a son propre cookie de profil et son propre `localStorage`.
 
 ### Schéma et migration
 
 La révision `0001_relational_gradebook` ajoute `data_initialized` si nécessaire,
-crée les tables relationnelles et copie les profils JSON existants. La base
+crée les tables relationnelles et copie les profils JSON existants. La révision
+`0002_gradebook_version` ajoute le compteur de concurrence avec une valeur
+initiale de 1 pour les profils existants. La base
 Render inspectée le 17 octobre 2026 ne contenait aucune table; cette observation
 est historique et doit être revérifiée avant toute migration. Les mises à jour
 ultérieures du schéma doivent passer par de nouvelles révisions Alembic.

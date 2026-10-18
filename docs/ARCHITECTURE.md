@@ -46,9 +46,12 @@ de vérité après l'initialisation.
 - PostgreSQL est configuré avec `DATABASE_URL`; SQLite sert au développement.
 - Les migrations Flask-Migrate/Alembic définissent le schéma. La révision
   `0001_relational_gradebook` conserve le JSON et copie les profils vers les
-  tables relationnelles.
+  tables relationnelles; `0002_gradebook_version` ajoute une version de carnet.
 - Le champ JSON reste synchronisé pendant la période de compatibilité et sert
   de format de repli lors d'un downgrade.
+- Les écritures du navigateur joignent leur version courante. Une mise à jour
+  conditionnelle refuse une version périmée avec HTTP 409 et renvoie l'état
+  serveur à recharger au lieu d'écraser les changements concurrents.
 - Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
 - Les routes admin sont protégées par la session Flask et les identifiants
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
@@ -66,8 +69,8 @@ base ou de déploiement ne fait partie du refactor local.
    le point d'entrée.
 2. Vérifier la migration dans un environnement de développement et établir un
    contrôle des comptes/totaux avant toute utilisation avec des données réelles.
-3. Définir une stratégie de synchronisation versionnée pour détecter les
-   modifications simultanées venant de plusieurs onglets ou appareils.
+3. La version du carnet détecte les modifications simultanées; définir ensuite
+   une stratégie de fusion si l'on veut combiner les modifications concurrentes.
 
 Avant toute mise en production, vérifier la migration sur une copie de données,
 confirmer les comptes et totaux, et définir la procédure de synchronisation

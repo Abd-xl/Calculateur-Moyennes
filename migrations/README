@@ -1,9 +1,10 @@
 Migration commands for this branch:
 
-    flask --app app db upgrade
-    flask --app app db downgrade -1
+    flask --app app db upgrade head
+    flask --app app db downgrade base
 
-Review the target DATABASE_URL before running either command. Upgrade 0001
+Review the target DATABASE_URL before running either command. Upgrade head
 preserves the legacy JSON column while copying its content into relational
-tables. Downgrade removes the relational tables and leaves that JSON column in
+tables and adds a gradebook concurrency version. Downgrade base removes the
+relational tables and added version column while leaving the legacy JSON in
 place; application writes keep it synchronized during the compatibility window.

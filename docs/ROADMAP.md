@@ -21,7 +21,7 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [ ] Vérifier la migration sur une copie de données et contrôler les comptes/totaux.
 - [ ] Retirer la copie JSON après la période de compatibilité.
 - [ ] Migrer les profils JSON avec sauvegarde, reprise et contrôle des totaux.
-- [ ] Versionner l'état pour repérer les conflits de synchronisation.
+- [x] Versionner l'état pour repérer les conflits de synchronisation.
 - [x] Paginer l'admin, filtrer côté base et calculer les totaux côté base.
 - [ ] Définir conservation, export et suppression des données visiteurs.
 

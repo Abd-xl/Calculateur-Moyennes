@@ -21,6 +21,8 @@ class Visitor(db.Model):
     data = db.Column(db.JSON, nullable=False, default=lambda: {"notes": {}, "coef": {}})
     # False until the browser has completed its first successful synchronization.
     data_initialized = db.Column(db.Boolean, nullable=False, default=False)
+    # Incremented with compare-and-swap whenever the gradebook changes.
+    gradebook_version = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     subjects = db.relationship(
         "Subject",
         back_populates="visitor",

@@ -2,8 +2,15 @@
 
 from copy import deepcopy
 
-from calculateur.models import Grade, Subject
+from sqlalchemy import update
+from sqlalchemy.orm.attributes import set_committed_value
+
+from calculateur.models import Grade, Subject, Visitor
 from calculateur.services.validation import validate_data
+
+
+class GradebookConflictError(Exception):
+    """Raised when the caller edits a gradebook version that is no longer current."""
 
 
 def load_gradebook(visitor):
@@ -22,8 +29,26 @@ def load_gradebook(visitor):
     return {"notes": notes, "coef": coefficients}
 
 
-def save_gradebook(visitor, data, session):
+def save_gradebook(visitor, data, session, expected_version):
     validate_data(data)
+
+    next_version = expected_version + 1
+    result = session.execute(
+        update(Visitor)
+        .where(
+            Visitor.id == visitor.id,
+            Visitor.gradebook_version == expected_version,
+        )
+        .values(
+            data=deepcopy(data),
+            data_initialized=True,
+            gradebook_version=next_version,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount != 1:
+        raise GradebookConflictError
+
     visitor.subjects.clear()
     session.flush()
     for subject_position, (name, grades) in enumerate(data["notes"].items()):
@@ -38,7 +63,9 @@ def save_gradebook(visitor, data, session):
         )
         visitor.subjects.append(subject)
 
-    # Keep the previous shape synchronized until the rollback window closes.
-    visitor.data = deepcopy(data)
-    visitor.data_initialized = True
+    # The conditional UPDATE already wrote these fields atomically.
+    set_committed_value(visitor, "data", deepcopy(data))
+    set_committed_value(visitor, "data_initialized", True)
+    set_committed_value(visitor, "gradebook_version", next_version)
     session.commit()
+    return next_version
