@@ -8,3 +8,12 @@ preserves the legacy JSON column while copying its content into relational
 tables and adds a gradebook concurrency version. Downgrade base removes the
 relational tables and added version column while leaving the legacy JSON in
 place; application writes keep it synchronized during the compatibility window.
+
+On a disposable copy of the target database, compare the two representations
+with the read-only audit command:
+
+    flask --app app audit-gradebooks
+
+The command reports profile, subject and grade counts, compares each profile's
+JSON, ordered gradebook and averages, and exits with status 1 if it finds an
+inconsistency. It does not repair or modify data.

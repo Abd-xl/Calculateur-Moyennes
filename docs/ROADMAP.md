@@ -19,6 +19,7 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
   API de persistance séparée.
 - [x] Ajouter Alembic, le modèle relationnel et une migration JSON vers matières/notes.
 - [ ] Vérifier la migration sur une copie de données et contrôler les comptes/totaux.
+- [x] Ajouter un audit en lecture seule du JSON et des gradebooks relationnels.
 - [ ] Retirer la copie JSON après la période de compatibilité.
 - [ ] Migrer les profils JSON avec sauvegarde, reprise et contrôle des totaux.
 - [x] Versionner l'état pour repérer les conflits de synchronisation.

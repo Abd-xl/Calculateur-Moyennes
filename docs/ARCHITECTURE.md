@@ -52,6 +52,8 @@ de vérité après l'initialisation.
 - Les écritures du navigateur joignent leur version courante. Une mise à jour
   conditionnelle refuse une version périmée avec HTTP 409 et renvoie l'état
   serveur à recharger au lieu d'écraser les changements concurrents.
+- `flask --app app audit-gradebooks` compare en lecture seule le JSON de
+  compatibilité, les matières/notes relationnelles et les moyennes par lots.
 - Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
 - Les routes admin sont protégées par la session Flask et les identifiants
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.

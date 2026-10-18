@@ -159,8 +159,18 @@ pip install -r requirements.txt
 Initialiser ou mettre à niveau le schéma local avec la migration versionnée :
 
 ```bash
-flask --app app db upgrade
+flask --app app db upgrade head
 ```
+
+Sur une copie jetable de la base, comparer le JSON de compatibilité avec les
+tables relationnelles et vérifier les comptes et moyennes :
+
+```bash
+flask --app app audit-gradebooks
+```
+
+Cette commande est en lecture seule; elle retourne un code d'erreur si elle
+trouve un profil incohérent.
 
 Lancer Flask :
 

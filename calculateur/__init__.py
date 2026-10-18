@@ -2,6 +2,7 @@
 
 import os
 
+
 def _database_uri():
     uri = os.environ.get("DATABASE_URL", "sqlite:///calculateur.db")
     if uri.startswith("postgres://"):
@@ -18,6 +19,7 @@ def create_app(test_config=None):
     from flask import Flask, render_template
     from flask_wtf.csrf import generate_csrf
 
+    from calculateur.cli import register_cli_commands
     from calculateur.extensions import csrf, db, limiter, migrate
     from calculateur.request_hooks import register_request_hooks
     from calculateur.routes.admin import register_admin_routes
@@ -52,6 +54,7 @@ def create_app(test_config=None):
     register_request_hooks(app)
     register_public_routes(app)
     register_admin_routes(app)
+    register_cli_commands(app)
 
     @app.context_processor
     def template_helpers():
