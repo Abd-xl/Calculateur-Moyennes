@@ -18,6 +18,14 @@ ADMIN_PAGE_SIZE = 25
 
 
 def register_admin_routes(app):
+    @app.after_request
+    def prevent_admin_response_caching(response):
+        if request.path.startswith("/admin"):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     @app.route("/admin/connexion", methods=["GET", "POST"])
     @limiter.limit("5 per minute; 20 per hour", methods=["POST"])
     def admin_login():

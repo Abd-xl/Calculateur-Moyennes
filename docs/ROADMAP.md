@@ -27,7 +27,7 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [x] Paginer l'admin, filtrer côté base et calculer les totaux côté base.
 - [x] Permettre à l'administrateur de supprimer un profil et ses données depuis son détail.
 - [ ] Définir une durée de conservation automatique des profils visiteurs.
-- [ ] Documenter l'export et les limites de suppression (notamment les copies locales navigateur).
+- [x] Documenter l'export et les limites de suppression (notamment les copies locales navigateur).
 
 ## Contraintes
 

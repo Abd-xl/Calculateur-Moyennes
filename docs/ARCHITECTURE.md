@@ -61,9 +61,15 @@ de vérité après l'initialisation.
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 - Depuis le détail d'un profil, l'administrateur peut le supprimer par POST
   protégé par CSRF; les matières et notes liées sont supprimées avec lui.
+- `GET /admin/export.json` exporte tous les profils, leurs identifiants anonymes,
+  les informations navigateur, les dates et les carnets de notes; l'admin exige
+  une session authentifiée. Les réponses `/admin` portent `Cache-Control:
+  no-store` pour éviter leur mise en cache.
+- Supprimer un profil efface ses données côté serveur, mais ne supprime pas les
+  fichiers d'export déjà téléchargés, les sauvegardes de base ni les copies
+  `localStorage` conservées sur les appareils des visiteurs.
 - La durée de conservation automatique des profils reste à décider. La
-  suppression d'un profil serveur n'efface pas les copies `localStorage` des
-  navigateurs.
+  base ne purge actuellement pas les profils inactifs automatiquement.
 - `SECRET_KEY` est obligatoire lorsque `RENDER=true`.
 
 La procédure de préparation PostgreSQL, les étapes de mise en service et les

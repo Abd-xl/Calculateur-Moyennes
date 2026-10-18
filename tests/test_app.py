@@ -314,11 +314,16 @@ def test_admin_visitor_detail_renders_profile_metadata(monkeypatch):
         })
         response = client.get(f"/admin/utilisateur/{visitor_id}")
         assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
         page = response.get_data(as_text=True)
         assert "visitor-test-id" in page
         assert "Test browser" in page
         assert "Maths" in page
         assert "15/20" in page
+        export = client.get("/admin/export.json")
+        assert export.status_code == 200
+        assert export.headers["Cache-Control"] == "no-store"
+        assert export.get_json()["visitors"][0]["anonymous_id"] == "visitor-test-id"
 
 
 def test_admin_can_delete_visitor_and_cascaded_gradebook(monkeypatch):
