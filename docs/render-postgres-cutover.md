@@ -2,12 +2,14 @@
 
 > **État : procédure uniquement.** Cette documentation ne configure pas Render, ne lance pas de migration et ne déclenche aucun déploiement.
 
-## État vérifié au 17 octobre 2026
+## État vérifié au 18 octobre 2026
 
 - Service web : `Calculateur-Moyennes`, région Frankfurt, branche de déploiement `web-app`, déploiement automatique activé.
 - PostgreSQL : `Calculateur-Postgres`, PostgreSQL 18, même workspace et même région que le service.
 - Base : `calculateur_postgres`.
-- La requête de lecture seule a confirmé que le schéma `public` contient actuellement **0 table**.
+- La base `Calculateur-Postgres` est disponible et contient la table legacy `anonymous_visitors`; les tables relationnelles `subjects` et `grades` ne sont pas encore présentes.
+- Le précontrôle en lecture seule du 18 octobre a validé les **13 profils** présents : 9 matières, 27 notes et aucun profil invalide. Le contrôle a lu le JSON sans afficher ni modifier de données individuelles.
+- Cette instance est la base primaire et aucune copie n'est disponible dans le workspace Render. L'audit comparant les données JSON et relationnelles reste donc à exécuter sur une copie après migration; aucune migration n'a été lancée.
 - Expiration indiquée pour l'offre gratuite : **16 novembre 2026**.
 - L'accès réseau PostgreSQL comprend actuellement `0.0.0.0/0`. À revoir avant d'y stocker des données réelles.
 - La branche `feature/admin-dashboard` utilise désormais Alembic. La révision
