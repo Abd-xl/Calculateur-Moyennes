@@ -1,0 +1,9 @@
+Migration commands for this branch:
+
+    flask --app app db upgrade
+    flask --app app db downgrade -1
+
+Review the target DATABASE_URL before running either command. Upgrade 0001
+preserves the legacy JSON column while copying its content into relational
+tables. Downgrade removes the relational tables and leaves that JSON column in
+place; application writes keep it synchronized during the compatibility window.

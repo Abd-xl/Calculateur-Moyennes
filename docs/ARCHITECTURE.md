@@ -39,8 +39,11 @@ de vérité après l'initialisation.
 ## Persistance et déploiement
 
 - PostgreSQL est configuré avec `DATABASE_URL`; SQLite sert au développement.
-- `db.create_all()` est conservé temporairement pour maintenir le démarrage
-  existant. Il ne remplace pas des migrations pour les évolutions de schéma.
+- Les migrations Flask-Migrate/Alembic définissent le schéma. La révision
+  `0001_relational_gradebook` conserve le JSON et copie les profils vers les
+  tables relationnelles.
+- Le champ JSON reste synchronisé pendant la période de compatibilité et sert
+  de format de repli lors d'un downgrade.
 - Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
 - Les routes admin sont protégées par la session Flask et les identifiants
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
@@ -56,10 +59,11 @@ base ou de déploiement ne fait partie du refactor local.
 1. Extraire la fabrique Flask, les extensions, les modèles, les hooks, les
    groupes de routes et les règles métier tout en gardant les URL, le schéma et
    le point d'entrée.
-2. Introduire des migrations de base et un modèle relationnel de matières et de
-   notes, avec une migration réversible depuis le JSON existant.
+2. Vérifier la migration dans un environnement de développement et établir un
+   contrôle des comptes/totaux avant toute utilisation avec des données réelles.
 3. Définir une stratégie de synchronisation versionnée pour détecter les
    modifications simultanées venant de plusieurs onglets ou appareils.
 
-Les étapes 3 et 4 nécessitent une sauvegarde et une procédure de migration avant
-toute mise en production.
+Avant toute mise en production, vérifier la migration sur une copie de données,
+confirmer les comptes et totaux, et définir la procédure de synchronisation
+multi-appareils.

@@ -18,7 +18,7 @@ def create_app(test_config=None):
     from flask import Flask, render_template
     from flask_wtf.csrf import generate_csrf
 
-    from calculateur.extensions import csrf, db, limiter
+    from calculateur.extensions import csrf, db, limiter, migrate
     from calculateur.request_hooks import register_request_hooks
     from calculateur.routes.admin import register_admin_routes
     from calculateur.routes.public import register_public_routes
@@ -48,6 +48,7 @@ def create_app(test_config=None):
     db.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    migrate.init_app(app, db, compare_type=True)
     register_request_hooks(app)
     register_public_routes(app)
     register_admin_routes(app)
@@ -64,9 +65,10 @@ def create_app(test_config=None):
     def not_found(_error):
         return render_template("error.html", code=404, message="Visiteur introuvable."), 404
 
-    # Kept for compatibility while the project moves to explicit migrations.
-    with app.app_context():
-        db.create_all()
+    # Test fixtures and local tools can opt in; deployments must use migrations.
+    if app.config.get("AUTO_CREATE_DB"):
+        with app.app_context():
+            db.create_all()
 
     return app
 

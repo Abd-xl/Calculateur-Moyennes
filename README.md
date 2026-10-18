@@ -145,6 +145,7 @@ Cloner le dépôt :
 ```bash
 git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
 cd Calculateur-Moyennes
+git switch feature/admin-dashboard
 ```
 
 Installer les dépendances :
@@ -154,6 +155,12 @@ pip install -r requirements.txt
 ```
 
 ### Application web
+
+Initialiser ou mettre à niveau le schéma local avec la migration versionnée :
+
+```bash
+flask --app app db upgrade
+```
 
 Lancer Flask :
 
@@ -190,7 +197,9 @@ Start : gunicorn app:app
 
 Le service Render continue de déployer `web-app`. Cette branche de refactor
 utilise `DATABASE_URL` pour PostgreSQL en production et SQLite par défaut en
-local. Aucun changement de déploiement n'est effectué par ce refactor.
+local. Le schéma doit être mis à niveau avec `flask --app app db upgrade` avant
+de démarrer la nouvelle version. Aucun changement de déploiement n'est effectué
+par ce refactor.
 
 ## Développement
 

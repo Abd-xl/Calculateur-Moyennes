@@ -17,7 +17,9 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [x] Déplacer la validation des données dans un service métier partagé.
 - [x] Formaliser les adaptateurs JSON du CLI et SQLAlchemy du web derrière une
   API de persistance séparée.
-- [ ] Ajouter des migrations de schéma et normaliser matières et notes.
+- [x] Ajouter Alembic, le modèle relationnel et une migration JSON vers matières/notes.
+- [ ] Vérifier la migration sur une copie de données et contrôler les comptes/totaux.
+- [ ] Retirer la copie JSON après la période de compatibilité.
 - [ ] Migrer les profils JSON avec sauvegarde, reprise et contrôle des totaux.
 - [ ] Versionner l'état pour repérer les conflits de synchronisation.
 - [ ] Paginer l'admin et calculer les totaux côté base.

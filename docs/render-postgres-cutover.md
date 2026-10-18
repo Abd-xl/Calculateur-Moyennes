@@ -10,7 +10,12 @@
 - La requête de lecture seule a confirmé que le schéma `public` contient actuellement **0 table**.
 - Expiration indiquée pour l'offre gratuite : **16 novembre 2026**.
 - L'accès réseau PostgreSQL comprend actuellement `0.0.0.0/0`. À revoir avant d'y stocker des données réelles.
-- L'application de la branche `feature/admin-dashboard` appelle `db.create_all()` au démarrage : lors de son premier démarrage avec une base vide, SQLAlchemy doit créer la table `anonymous_visitors`. Aucun `drop_all()` ni réinitialisation ne doit être exécuté contre la base de production.
+- La branche `feature/admin-dashboard` utilise désormais Alembic. La révision
+  `0001_relational_gradebook` crée les tables relationnelles et copie les
+  données `anonymous_visitors.data` existantes. Elle garde le JSON synchronisé
+  pendant la période de compatibilité. Ne pas exécuter `db.create_all()` ni
+  lancer cette migration sur la production sans fenêtre de mise en service
+  autorisée et sauvegarde vérifiée.
 
 ## Important : ne pas configurer la production trop tôt
 
@@ -41,13 +46,14 @@ Le service web et la base sont dans la même région Frankfurt. L'URL interne ut
 3. Configurer les variables listées ci-dessus dans le service web. Vérifier visuellement les noms et ne pas partager les valeurs secrètes.
 4. Confirmer la stratégie d'accès réseau PostgreSQL. L'URL interne est préférable ; réexaminer la règle `0.0.0.0/0` pour les connexions externes.
 5. Vérifier une dernière fois que GitHub Actions passe sur le SHA de la PR et que les variables obligatoires sont présentes.
-6. Seulement après autorisation explicite, fusionner la PR. La branche `web-app` déploie automatiquement les commits.
-7. Après le démarrage, vérifier les logs de déploiement, la présence de `anonymous_visitors`, la page publique, les opérations de notes, la connexion administrateur, l'export JSON et les cookies HTTPS.
-8. Prévoir un export/sauvegarde avant l'expiration gratuite indiquée au **16 novembre 2026**. Ne pas considérer la sauvegarde de la base comme un moyen de récupérer automatiquement les données `localStorage` de chaque navigateur.
+6. Avant toute fusion, exécuter `flask --app app db upgrade` contre la base visée pendant la fenêtre de mise en service autorisée et contrôler les comptes matières/notes avant et après.
+7. Seulement après autorisation explicite, fusionner la PR. La branche `web-app` déploie automatiquement les commits.
+8. Après le démarrage, vérifier les logs de déploiement, la présence des tables `anonymous_visitors`, `subjects` et `grades`, la page publique, les opérations de notes, la connexion administrateur, l'export JSON et les cookies HTTPS.
+9. Prévoir un export/sauvegarde avant l'expiration gratuite indiquée au **16 novembre 2026**. Ne pas considérer la sauvegarde de la base comme un moyen de récupérer automatiquement les données `localStorage` de chaque navigateur.
 
 ## Limites connues à résoudre avant une utilisation sérieuse
 
-- `db.create_all()` crée les tables manquantes, mais ne remplace pas un système de migrations pour les futures modifications de schéma.
+- Le schéma n'est plus créé automatiquement au démarrage; la migration doit être appliquée avant de démarrer cette version.
 - Flask-Limiter utilise actuellement le stockage mémoire : les compteurs sont réinitialisés au redémarrage et ne sont pas partagés entre plusieurs workers/instances.
 - Les tests CI forcent `DATABASE_URL=sqlite:///:memory:` pour empêcher qu'ils touchent la base de production.
 
@@ -71,4 +77,8 @@ Cette politique permet de récupérer les données historiques d'un navigateur l
 
 ### Schéma et migration
 
-`db.create_all()` crée la colonne `data_initialized` uniquement lors de la création d'une nouvelle table. Il ne modifie pas une table déjà existante. La base Render inspectée le 17 octobre 2026 ne contenait aucune table, donc la première création de schéma inclura cette colonne. Si la table est créée manuellement ou existe déjà dans un autre environnement, une migration de schéma explicite sera nécessaire avant d'y lancer cette version.
+La révision `0001_relational_gradebook` ajoute `data_initialized` si nécessaire,
+crée les tables relationnelles et copie les profils JSON existants. La base
+Render inspectée le 17 octobre 2026 ne contenait aucune table; cette observation
+est historique et doit être revérifiée avant toute migration. Les mises à jour
+ultérieures du schéma doivent passer par de nouvelles révisions Alembic.

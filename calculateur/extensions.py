@@ -5,6 +5,7 @@ import os
 from flask_limiter import Limiter
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
+from flask_migrate import Migrate
 
 from calculateur.security import get_client_ip
 
@@ -15,3 +16,4 @@ limiter = Limiter(
     default_limits=[],
     storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
 )
+migrate = Migrate()
