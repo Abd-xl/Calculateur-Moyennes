@@ -8,8 +8,9 @@
 - PostgreSQL : `Calculateur-Postgres`, PostgreSQL 18, même workspace et même région que le service.
 - Base : `calculateur_postgres`.
 - La base `Calculateur-Postgres` est disponible et contient la table legacy `anonymous_visitors`; les tables relationnelles `subjects` et `grades` ne sont pas encore présentes.
-- Le précontrôle en lecture seule du 18 octobre a validé les **13 profils** présents : 9 matières, 27 notes et aucun profil invalide. Le contrôle a lu le JSON sans afficher ni modifier de données individuelles.
-- Cette instance est la base primaire et aucune copie n'est disponible dans le workspace Render. L'audit comparant les données JSON et relationnelles reste donc à exécuter sur une copie après migration; aucune migration n'a été lancée.
+- Le précontrôle en lecture seule du 18 octobre a validé les **14 profils** présents : 10 matières, 28 notes et aucun profil invalide. Le contrôle a lu le JSON sans afficher ni modifier de données individuelles.
+- Une copie SQLite temporaire, construite à partir des JSON actuels sans les identifiants de visiteurs, a passé les migrations `0001` et `0002`, puis l'audit : 14 profils, 10 matières, 28 notes dans les deux formats et aucun écart. Cette vérification ne couvre pas les particularités de PostgreSQL.
+- Cette instance est la base primaire et aucune copie PostgreSQL n'est disponible dans le workspace Render. La restauration et la vérification sur une copie PostgreSQL restent à faire; aucune migration ni écriture n'a été lancée sur Render.
 - Expiration indiquée pour l'offre gratuite : **16 novembre 2026**.
 - L'accès réseau PostgreSQL comprend actuellement `0.0.0.0/0`. À revoir avant d'y stocker des données réelles.
 - La branche `feature/admin-dashboard` utilise désormais Alembic. La révision
