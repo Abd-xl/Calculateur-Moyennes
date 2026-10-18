@@ -319,3 +319,40 @@ def test_admin_visitor_detail_renders_profile_metadata(monkeypatch):
         assert "Test browser" in page
         assert "Maths" in page
         assert "15/20" in page
+
+
+def test_admin_can_delete_visitor_and_cascaded_gradebook(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    reset_database()
+    data = {
+        "notes": {"Maths": [{"note": 15, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    }
+    with module.app.app_context():
+        visitor = module.Visitor(
+            public_id="delete-profile",
+            token_hash="delete-profile-token",
+            data=data,
+        )
+        module.db.session.add(visitor)
+        module.db.session.flush()
+        save_gradebook(visitor, data, module.db.session, expected_version=1)
+        visitor_id = visitor.id
+
+    with module.app.test_client() as client:
+        assert client.post(f"/admin/utilisateur/{visitor_id}/supprimer").status_code == 302
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        assert client.get(f"/admin/utilisateur/{visitor_id}/supprimer").status_code == 405
+        response = client.post(f"/admin/utilisateur/{visitor_id}/supprimer")
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/admin")
+
+    with module.app.app_context():
+        assert module.db.session.get(module.Visitor, visitor_id) is None
+        assert module.Subject.query.count() == 0
+        assert module.Grade.query.count() == 0

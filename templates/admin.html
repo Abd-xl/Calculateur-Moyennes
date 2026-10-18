@@ -24,6 +24,12 @@
       </div>
     </header>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <p class="message message--{{ category }}" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+
     <section class="admin-stats" aria-label="Statistiques">
       <article class="admin-stat"><span class="admin-stat__label">Profils enregistrés</span><strong>{{ total_visitors }}</strong><span class="admin-stat__hint">Tous navigateurs</span></article>
       <article class="admin-stat"><span class="admin-stat__label">Matières enregistrées</span><strong>{{ total_subjects }}</strong><span class="admin-stat__hint">Cumul des profils</span></article>

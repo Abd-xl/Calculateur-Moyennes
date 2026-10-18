@@ -116,6 +116,17 @@ def register_admin_routes(app):
             "admin_user.html", user=visitor, data=load_gradebook(visitor)
         )
 
+    @app.route("/admin/utilisateur/<int:user_id>/supprimer", methods=["POST"])
+    @admin_required
+    def admin_delete_visitor(user_id):
+        visitor = db.session.get(Visitor, user_id)
+        if visitor is None:
+            abort(404)
+        db.session.delete(visitor)
+        db.session.commit()
+        flash(f"Le profil visiteur #{user_id} et ses données ont été supprimés.", "success")
+        return redirect(url_for("admin_dashboard"))
+
     @app.route("/admin/export.json")
     @admin_required
     def admin_export():

@@ -59,6 +59,11 @@ de vérité après l'initialisation.
 - Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
 - Les routes admin sont protégées par la session Flask et les identifiants
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+- Depuis le détail d'un profil, l'administrateur peut le supprimer par POST
+  protégé par CSRF; les matières et notes liées sont supprimées avec lui.
+- La durée de conservation automatique des profils reste à décider. La
+  suppression d'un profil serveur n'efface pas les copies `localStorage` des
+  navigateurs.
 - `SECRET_KEY` est obligatoire lorsque `RENDER=true`.
 
 La procédure de préparation PostgreSQL, les étapes de mise en service et les
