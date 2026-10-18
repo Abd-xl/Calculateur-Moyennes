@@ -2,12 +2,10 @@ import json
 import os
 import tempfile
 
+from calculateur.services.validation import DonneesInvalidesError, validate_data
+
 notes = {}
 coef = {}
-
-
-class DonneesInvalidesError(ValueError):
-    """Levée lorsque notes.json existe mais ne peut pas être utilisé."""
 
 
 class SauvegardeError(RuntimeError):
@@ -15,66 +13,7 @@ class SauvegardeError(RuntimeError):
 
 
 def _valider_donnees(data):
-    if not isinstance(data, dict):
-        raise DonneesInvalidesError("Les données doivent être un dictionnaire.")
-
-    notes_data = data.get("notes")
-    coef_data = data.get("coef")
-
-    if not isinstance(notes_data, dict):
-        raise DonneesInvalidesError("Les notes doivent être un dictionnaire.")
-
-    if not isinstance(coef_data, dict):
-        raise DonneesInvalidesError("Les coefficients doivent être un dictionnaire.")
-
-    if set(notes_data) != set(coef_data):
-        raise DonneesInvalidesError(
-            "Les matières et les coefficients ne correspondent pas."
-        )
-
-    for matiere, liste_notes in notes_data.items():
-        if not isinstance(matiere, str) or not matiere.strip():
-            raise DonneesInvalidesError("Le nom de la matière est invalide.")
-
-        if not isinstance(liste_notes, list):
-            raise DonneesInvalidesError(
-                f"Les notes de {matiere} doivent être une liste."
-            )
-
-        coefficient = coef_data[matiere]
-        if (
-            isinstance(coefficient, bool)
-            or not isinstance(coefficient, int)
-            or coefficient <= 0
-        ):
-            raise DonneesInvalidesError(
-                f"Le coefficient de {matiere} doit être un entier positif."
-            )
-
-        for note_data in liste_notes:
-            if not isinstance(note_data, dict):
-                raise DonneesInvalidesError(
-                    f"Une note de {matiere} doit être un dictionnaire."
-                )
-
-            if set(note_data) != {"note", "bareme"}:
-                raise DonneesInvalidesError(
-                    f"Une note de {matiere} doit contenir note et bareme."
-                )
-
-            note = note_data["note"]
-            bareme = note_data["bareme"]
-
-            if isinstance(note, bool) or not isinstance(note, (int, float)):
-                raise DonneesInvalidesError("La note doit être un nombre.")
-
-            if bareme not in (10, 20):
-                raise DonneesInvalidesError("Le barème doit être 10 ou 20.")
-
-            if not 0 <= note <= bareme:
-                raise DonneesInvalidesError(
-                    f"La note doit être comprise entre 0 et {bareme}."
-                )
+    validate_data(data)
 
 
 def remplacer_donnees(data):
