@@ -1,4 +1,5 @@
 import app as module
+import calculateur.routes.admin as admin_routes
 from calculateur.repositories.visitor_gradebook import save_gradebook
 from calculateur.services.gradebook_audit import audit_gradebooks
 
@@ -361,3 +362,40 @@ def test_admin_can_delete_visitor_and_cascaded_gradebook(monkeypatch):
         assert module.db.session.get(module.Visitor, visitor_id) is None
         assert module.Subject.query.count() == 0
         assert module.Grade.query.count() == 0
+
+
+def test_admin_export_streams_profiles_in_keyset_batches(monkeypatch):
+    module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_PASSWORD", "long-test-admin-password")
+    monkeypatch.setattr(admin_routes, "ADMIN_EXPORT_PAGE_SIZE", 1)
+    reset_database()
+    with module.app.app_context():
+        module.db.session.add_all(
+            [
+                module.Visitor(
+                    public_id=f"export-{index}",
+                    token_hash=f"export-token-{index}",
+                    browser_info="test browser",
+                    data={"notes": {}, "coef": {}},
+                )
+                for index in range(3)
+            ]
+        )
+        module.db.session.commit()
+
+    with module.app.test_client() as client:
+        client.post("/admin/connexion", data={
+            "email": "admin@example.com",
+            "password": "long-test-admin-password",
+        })
+        response = client.get("/admin/export.json")
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["Content-Disposition"].startswith("attachment;")
+        export = response.get_json()
+        assert [visitor["anonymous_id"] for visitor in export["visitors"]] == [
+            "export-0",
+            "export-1",
+            "export-2",
+        ]

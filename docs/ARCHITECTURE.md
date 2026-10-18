@@ -63,8 +63,9 @@ de vérité après l'initialisation.
   protégé par CSRF; les matières et notes liées sont supprimées avec lui.
 - `GET /admin/export.json` exporte tous les profils, leurs identifiants anonymes,
   les informations navigateur, les dates et les carnets de notes; l'admin exige
-  une session authentifiée. Les réponses `/admin` portent `Cache-Control:
-  no-store` pour éviter leur mise en cache.
+  une session authentifiée. L'export lit les profils par lots de 100 et les
+  réponses `/admin` portent `Cache-Control: no-store` pour éviter leur mise en
+  cache.
 - Supprimer un profil efface ses données côté serveur, mais ne supprime pas les
   fichiers d'export déjà téléchargés, les sauvegardes de base ni les copies
   `localStorage` conservées sur les appareils des visiteurs.

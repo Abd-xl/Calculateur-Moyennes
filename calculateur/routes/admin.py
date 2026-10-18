@@ -1,13 +1,22 @@
 """Routes de connexion et de consultation administrateur."""
 
 import hmac
-import io
 import json
 import os
 
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import selectinload
-from flask import abort, flash, redirect, render_template, request, send_file, session, url_for
+from flask import (
+    Response,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    stream_with_context,
+    url_for,
+)
 
 from calculateur.extensions import db, limiter
 from calculateur.models import Grade, Subject, Visitor, utcnow
@@ -15,6 +24,7 @@ from calculateur.repositories.visitor_gradebook import load_gradebook
 from calculateur.security import admin_required
 
 ADMIN_PAGE_SIZE = 25
+ADMIN_EXPORT_PAGE_SIZE = 100
 
 
 def register_admin_routes(app):
@@ -138,27 +148,47 @@ def register_admin_routes(app):
     @app.route("/admin/export.json")
     @admin_required
     def admin_export():
-        payload = {
-            "exported_at": utcnow().isoformat(),
-            "visitors": [
-                {
-                    "id": visitor.id,
-                    "anonymous_id": visitor.public_id,
-                    "browser_info": visitor.browser_info,
-                    "created_at": visitor.created_at.isoformat() if visitor.created_at else None,
-                    "last_seen_at": visitor.last_seen_at.isoformat() if visitor.last_seen_at else None,
-                    "data": load_gradebook(visitor),
-                }
-                for visitor in db.session.scalars(
+        exported_at = utcnow().isoformat()
+
+        def generate_export():
+            yield '{"exported_at":'
+            yield json.dumps(exported_at)
+            yield ',"visitors":['
+            last_id = 0
+            first = True
+            while True:
+                visitors = db.session.scalars(
                     select(Visitor)
-                    .options(selectinload(Visitor.subjects).selectinload(Subject.grades))
+                    .where(Visitor.id > last_id)
                     .order_by(Visitor.id)
-                )
-            ],
-        }
-        file = io.BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"))
-        file.seek(0)
-        return send_file(
-            file, mimetype="application/json", as_attachment=True,
-            download_name="export-visiteurs.json",
+                    .limit(ADMIN_EXPORT_PAGE_SIZE)
+                    .options(selectinload(Visitor.subjects).selectinload(Subject.grades))
+                ).all()
+                if not visitors:
+                    break
+
+                for visitor in visitors:
+                    last_id = visitor.id
+                    payload = {
+                        "id": visitor.id,
+                        "anonymous_id": visitor.public_id,
+                        "browser_info": visitor.browser_info,
+                        "created_at": (
+                            visitor.created_at.isoformat() if visitor.created_at else None
+                        ),
+                        "last_seen_at": (
+                            visitor.last_seen_at.isoformat() if visitor.last_seen_at else None
+                        ),
+                        "data": load_gradebook(visitor),
+                    }
+                    if not first:
+                        yield ","
+                    yield json.dumps(payload, ensure_ascii=False)
+                    first = False
+            yield "]}"
+
+        return Response(
+            stream_with_context(generate_export()),
+            mimetype="application/json",
+            headers={"Content-Disposition": 'attachment; filename="export-visiteurs.json"'},
         )
