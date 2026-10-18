@@ -68,8 +68,8 @@ de vérité après l'initialisation.
 - Supprimer un profil efface ses données côté serveur, mais ne supprime pas les
   fichiers d'export déjà téléchargés, les sauvegardes de base ni les copies
   `localStorage` conservées sur les appareils des visiteurs.
-- La durée de conservation automatique des profils reste à décider. La
-  base ne purge actuellement pas les profils inactifs automatiquement.
+- Les profils sont conservés jusqu'à leur suppression manuelle par
+  l'administrateur; aucune purge automatique n'est prévue.
 - `SECRET_KEY` est obligatoire lorsque `RENDER=true`.
 
 La procédure de préparation PostgreSQL, les étapes de mise en service et les

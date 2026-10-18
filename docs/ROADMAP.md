@@ -26,7 +26,7 @@ distinguent le découpage déjà fait des changements qui touchent au stockage.
 - [x] Versionner l'état pour repérer les conflits de synchronisation.
 - [x] Paginer l'admin, filtrer côté base et calculer les totaux côté base.
 - [x] Permettre à l'administrateur de supprimer un profil et ses données depuis son détail.
-- [ ] Définir une durée de conservation automatique des profils visiteurs.
+- [x] Définir la conservation manuelle des profils jusqu'à leur suppression par l'administrateur.
 - [x] Documenter l'export et les limites de suppression (notamment les copies locales navigateur).
 
 ## Contraintes

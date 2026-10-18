@@ -73,11 +73,52 @@ def _decode_data(value, visitor_id):
         raise RuntimeError(f"Profil {visitor_id}: données notes/coef invalides.")
     if set(notes) != set(coefficients):
         raise RuntimeError(f"Profil {visitor_id}: matières et coefficients divergent.")
+    for name, subject_notes in notes.items():
+        if not isinstance(name, str) or not name.strip() or not isinstance(subject_notes, list):
+            raise RuntimeError(f"Profil {visitor_id}: matière invalide.")
+        coefficient = coefficients[name]
+        if isinstance(coefficient, bool) or not isinstance(coefficient, int) or coefficient <= 0:
+            raise RuntimeError(f"Profil {visitor_id}: coefficient invalide pour {name!r}.")
+        for grade in subject_notes:
+            if not isinstance(grade, dict) or set(grade) != {"note", "bareme"}:
+                raise RuntimeError(f"Profil {visitor_id}: note mal structurée en {name!r}.")
+            value, scale = grade["note"], grade["bareme"]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or isinstance(scale, bool)
+                or scale not in (10, 20)
+                or not 0 <= value <= scale
+            ):
+                raise RuntimeError(f"Profil {visitor_id}: note invalide en {name!r}.")
     return notes, coefficients
 
 
 def upgrade():
     bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    migration_data = []
+    if "anonymous_visitors" in inspector.get_table_names():
+        columns = {column["name"] for column in inspector.get_columns("anonymous_visitors")}
+        missing = {"id", "data"} - columns
+        if missing:
+            raise RuntimeError(
+                "Table anonymous_visitors incomplète : colonnes manquantes "
+                f"{', '.join(sorted(missing))}."
+            )
+        visitors = sa.table(
+            "anonymous_visitors",
+            sa.column("id", sa.Integer()),
+            sa.column("data", sa.JSON()),
+        )
+        # Validate every profile before any schema or data change. This keeps an
+        # invalid late profile from leaving a partially migrated database.
+        for visitor in bind.execute(
+            sa.select(visitors.c.id, visitors.c.data).order_by(visitors.c.id)
+        ).mappings():
+            notes, coefficients = _decode_data(visitor["data"], visitor["id"])
+            migration_data.append((visitor["id"], notes, coefficients))
+
     _ensure_visitor_table(bind)
 
     op.create_table(
@@ -110,11 +151,6 @@ def upgrade():
     )
     op.create_index("ix_grades_subject_id", "grades", ["subject_id"])
 
-    visitors = sa.table(
-        "anonymous_visitors",
-        sa.column("id", sa.Integer()),
-        sa.column("data", sa.JSON()),
-    )
     subjects = sa.table(
         "subjects",
         sa.column("id", sa.Integer()),
@@ -131,17 +167,12 @@ def upgrade():
         sa.column("position", sa.Integer()),
     )
 
-    for visitor in bind.execute(sa.select(visitors.c.id, visitors.c.data)).mappings():
-        notes, coefficients = _decode_data(visitor["data"], visitor["id"])
+    for visitor_id, notes, coefficients in migration_data:
         for subject_position, (name, subject_notes) in enumerate(notes.items()):
-            if not isinstance(name, str) or not name.strip() or not isinstance(subject_notes, list):
-                raise RuntimeError(f"Profil {visitor['id']}: matière invalide.")
             coefficient = coefficients[name]
-            if isinstance(coefficient, bool) or not isinstance(coefficient, int) or coefficient <= 0:
-                raise RuntimeError(f"Profil {visitor['id']}: coefficient invalide pour {name!r}.")
             result = bind.execute(
                 subjects.insert().values(
-                    visitor_id=visitor["id"],
+                    visitor_id=visitor_id,
                     name=name,
                     coefficient=coefficient,
                     position=subject_position,
@@ -149,22 +180,11 @@ def upgrade():
             )
             subject_id = result.scalar_one()
             for grade_position, grade in enumerate(subject_notes):
-                if not isinstance(grade, dict) or set(grade) != {"note", "bareme"}:
-                    raise RuntimeError(f"Profil {visitor['id']}: note mal structurée en {name!r}.")
-                value, scale = grade.get("note"), grade.get("bareme")
-                if (
-                    isinstance(value, bool)
-                    or not isinstance(value, (int, float))
-                    or isinstance(scale, bool)
-                    or scale not in (10, 20)
-                    or not 0 <= value <= scale
-                ):
-                    raise RuntimeError(f"Profil {visitor['id']}: note invalide en {name!r}.")
                 bind.execute(
                     grades.insert().values(
                         subject_id=subject_id,
-                        value=value,
-                        scale=scale,
+                        value=grade["note"],
+                        scale=grade["bareme"],
                         position=grade_position,
                     )
                 )
