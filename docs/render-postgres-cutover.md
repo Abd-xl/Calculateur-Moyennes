@@ -46,11 +46,12 @@ Le service web et la base sont dans la même région Frankfurt. L'URL interne ut
 3. Configurer les variables listées ci-dessus dans le service web. Vérifier visuellement les noms et ne pas partager les valeurs secrètes.
 4. Confirmer la stratégie d'accès réseau PostgreSQL. L'URL interne est préférable ; réexaminer la règle `0.0.0.0/0` pour les connexions externes.
 5. Vérifier une dernière fois que GitHub Actions passe sur le SHA de la PR et que les variables obligatoires sont présentes.
-6. Avant toute migration réelle, restaurer une sauvegarde dans une copie jetable et y exécuter `flask --app app audit-gradebooks`. Résoudre les écarts et consigner les comptes JSON/relationnels.
-7. Seulement après autorisation explicite, exécuter `flask --app app db upgrade head` contre la base visée pendant la fenêtre de mise en service et contrôler les comptes matières/notes.
-8. Seulement après autorisation explicite, fusionner la PR. La branche `web-app` déploie automatiquement les commits.
-9. Après le démarrage, vérifier les logs de déploiement, la présence des tables `anonymous_visitors`, `subjects` et `grades`, la page publique, les opérations de notes, la connexion administrateur, l'export JSON et les cookies HTTPS.
-10. Prévoir un export/sauvegarde avant l'expiration gratuite indiquée au **16 novembre 2026**. Ne pas considérer la sauvegarde de la base comme un moyen de récupérer automatiquement les données `localStorage` de chaque navigateur.
+6. Avant toute migration réelle, restaurer une sauvegarde dans une copie jetable, exécuter `flask --app app preflight-gradebooks`, puis résoudre les profils JSON invalides et consigner les comptes de référence.
+7. Sur cette copie, exécuter `flask --app app db upgrade head`, puis `flask --app app audit-gradebooks`. Résoudre les écarts et confirmer les comptes/moyennes avant toute intervention réelle.
+8. Seulement après autorisation explicite, exécuter `flask --app app db upgrade head` contre la base visée pendant la fenêtre de mise en service et contrôler les comptes matières/notes.
+9. Seulement après autorisation explicite, fusionner la PR. La branche `web-app` déploie automatiquement les commits.
+10. Après le démarrage, vérifier les logs de déploiement, la présence des tables `anonymous_visitors`, `subjects` et `grades`, la page publique, les opérations de notes, la connexion administrateur, l'export JSON et les cookies HTTPS.
+11. Prévoir un export/sauvegarde avant l'expiration gratuite indiquée au **16 novembre 2026**. Ne pas considérer la sauvegarde de la base comme un moyen de récupérer automatiquement les données `localStorage` de chaque navigateur.
 
 ## Limites connues à résoudre avant une utilisation sérieuse
 

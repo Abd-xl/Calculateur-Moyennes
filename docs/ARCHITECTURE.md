@@ -54,6 +54,8 @@ de vérité après l'initialisation.
   serveur à recharger au lieu d'écraser les changements concurrents.
 - `flask --app app audit-gradebooks` compare en lecture seule le JSON de
   compatibilité, les matières/notes relationnelles et les moyennes par lots.
+- `flask --app app preflight-gradebooks` valide en lecture seule le JSON source
+  et établit les comptes de référence avant la migration.
 - Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
 - Les routes admin sont protégées par la session Flask et les identifiants
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`.

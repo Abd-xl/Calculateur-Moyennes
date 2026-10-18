@@ -166,11 +166,13 @@ Sur une copie jetable de la base, comparer le JSON de compatibilité avec les
 tables relationnelles et vérifier les comptes et moyennes :
 
 ```bash
+flask --app app preflight-gradebooks  # avant la migration
+flask --app app db upgrade head
 flask --app app audit-gradebooks
 ```
 
-Cette commande est en lecture seule; elle retourne un code d'erreur si elle
-trouve un profil incohérent.
+Les commandes de précontrôle et d'audit sont en lecture seule; elles retournent
+un code d'erreur si elles trouvent un profil incohérent.
 
 Lancer Flask :
 
