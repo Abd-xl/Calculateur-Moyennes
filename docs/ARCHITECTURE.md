@@ -1,4 +1,4 @@
-# Architecture — branche `feature/admin-dashboard`
+# Architecture web
 
 ## Architecture actuelle
 
@@ -40,6 +40,12 @@ Le format JSON stocké par visiteur reste `{"notes": {...}, "coef": {...}}`.
 `localStorage` sert à récupérer les anciennes données lors de la première
 synchronisation et conserve ensuite une copie locale; PostgreSQL reste la source
 de vérité après l'initialisation.
+
+Si l'import initial échoue, l'interface garde la copie locale, affiche l'erreur
+et propose de réessayer. Une sauvegarde exportée peut être restaurée dans le
+profil courant; les conflits de version demandent une confirmation avant de
+remplacer les données serveur. L'export contient la copie actuelle du navigateur,
+la copie locale précédente et l'état serveur au moment du téléchargement.
 
 ## Persistance et déploiement
 

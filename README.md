@@ -6,7 +6,7 @@ Le projet conserve son cœur métier Python tout en ajoutant une interface HTML/
 
 ## Version actuelle
 
-**2.0.0 — refactor en cours sur `feature/admin-dashboard`**
+**Application web — branche `web-app`**
 
 Cette version marque la transition du projet vers une application web Flask.
 
@@ -28,6 +28,7 @@ Cette version marque la transition du projet vers une application web Flask.
 - Interface sombre et responsive avec HTML/CSS.
 - Fenêtres `dialog` pour modifier les notes sans agrandir les lignes du tableau.
 - Sélection rapide d'une matière existante lors de l'ajout d'une note.
+- Sauvegarde téléchargeable et restauration des données du navigateur ou d'un fichier JSON.
 - Ancienne interface terminal conservée.
 
 > Le mode « Remplir le tableur » est encore en développement.
@@ -110,7 +111,7 @@ Cela permet d'afficher la note telle qu'elle a été saisie tout en utilisant un
 
 ## Architecture
 
-La branche `feature/admin-dashboard` suit actuellement cette architecture :
+L'application web suit actuellement cette architecture :
 
 ```text
 Navigateur
@@ -128,8 +129,15 @@ Service de calcul + modèles SQLAlchemy
 PostgreSQL / SQLite (état web) + localStorage (copie navigateur)
 ```
 
-Le calcul des moyennes est partagé entre le web et le CLI. L'extraction des
-validations et mutations en services métier indépendants est la prochaine étape.
+Le calcul, la validation et les mutations des notes sont partagés entre le web
+et le CLI dans les services métier.
+
+Le navigateur importe ses données locales lors de la première synchronisation,
+puis PostgreSQL devient la source de vérité. Si cet import échoue, l'application
+affiche l'erreur et conserve la copie locale pour permettre une nouvelle
+tentative. Une sauvegarde JSON peut être téléchargée puis restaurée dans un
+profil après confirmation; un conflit de version demande aussi confirmation
+avant de remplacer les données serveur.
 
 ## Installation
 
@@ -145,7 +153,6 @@ Cloner le dépôt :
 ```bash
 git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
 cd Calculateur-Moyennes
-git switch feature/admin-dashboard
 ```
 
 Installer les dépendances :
@@ -207,11 +214,10 @@ Build : pip install -r requirements.txt
 Start : gunicorn app:app
 ```
 
-Le service Render continue de déployer `web-app`. Cette branche de refactor
-utilise `DATABASE_URL` pour PostgreSQL en production et SQLite par défaut en
-local. Le schéma doit être mis à niveau avec `flask --app app db upgrade` avant
-de démarrer la nouvelle version. Aucun changement de déploiement n'est effectué
-par ce refactor.
+Le service Render déploie `web-app` et utilise `DATABASE_URL` pour PostgreSQL.
+Sur Render, le démarrage précontrôle les données, applique les migrations
+Alembic et audite les gradebooks avant de servir les requêtes. En local, mettre
+le schéma à niveau avec `flask --app app db upgrade head`.
 
 ## Développement
 
@@ -227,11 +233,11 @@ Les décisions techniques et les changements importants sont documentés dans :
 
 - Finaliser le mode tableur.
 - Améliorer l'expérience mobile.
-- Ajouter progressivement l'interactivité JavaScript.
 - Étudier le fonctionnement hors ligne.
 - Transformer progressivement l'application en PWA.
-- Remplacer le stockage JSON par une vraie base de données lorsque nécessaire.
-- Ajouter les mesures de sécurité adaptées au déploiement.
+- Ajouter une validation de synchronisation navigateur dans un vrai navigateur.
+- Exercer les migrations CI sur un PostgreSQL jetable.
+- Définir les sauvegardes PostgreSQL et la solution durable avant l'expiration du plan gratuit Render.
 
 ## Historique des versions
 
@@ -272,7 +278,7 @@ Les décisions techniques et les changements importants sont documentés dans :
 
 
 
-## Architecture anonyme (branche `feature/admin-dashboard`)
+## Profils anonymes et administration
 
 L'interface publique ne demande aucun compte ni mot de passe. Le serveur crée automatiquement un profil anonyme par navigateur à partir d'un jeton aléatoire conservé dans un cookie HTTP-only. La base stocke uniquement le hash du jeton, un identifiant anonyme, le User-Agent déclaré par le navigateur et les notes.
 
@@ -284,4 +290,4 @@ Variables de déploiement :
 - `ADMIN_EMAIL` et `ADMIN_PASSWORD` : identifiants de l'espace administrateur.
 - `COOKIE_SECURE=true` : cookies sécurisés sur HTTPS.
 
-Limites : l'identifiant correspond à un navigateur/profil, pas à une personne réelle. Effacer les cookies, utiliser la navigation privée ou changer de navigateur peut créer un nouvel identifiant. Le User-Agent donne une indication sur le navigateur et parfois le système, mais ne permet pas de connaître avec certitude le nom physique de l'appareil. Aucun historique d'adresse IP n'est conservé. Les notes encore présentes uniquement dans `localStorage` ne seront importées que depuis le navigateur qui les possède.
+Limites : l'identifiant correspond à un navigateur/profil, pas à une personne réelle. Effacer les cookies, utiliser la navigation privée ou changer de navigateur peut créer un nouvel identifiant. Le User-Agent donne une indication sur le navigateur et parfois le système, mais ne permet pas de connaître avec certitude le nom physique de l'appareil. Aucun historique d'adresse IP n'est conservé. Les notes uniquement présentes dans `localStorage` sont importées depuis leur navigateur; une sauvegarde JSON téléchargée peut aussi être restaurée dans un profil.

@@ -1,19 +1,18 @@
-# Préparation de la connexion PostgreSQL sur Render
+# PostgreSQL sur Render : état et exploitation
 
-> **État : migration au démarrage implémentée, pas encore déployée.** Sur Render,
-> l'application précontrôle les JSON, applique les migrations Alembic et audite
-> les deux formats avant de servir les requêtes. Aucune migration de production
-> n'a été lancée par la branche de travail.
+> **État au 18 octobre 2026 : migration déployée et exécutée en production.**
+> Ce document décrit l'état actuel et les contrôles qui restent à faire pour
+> sécuriser l'exploitation de PostgreSQL.
 
 ## État vérifié au 18 octobre 2026
 
 - Service web : `Calculateur-Moyennes`, région Frankfurt, branche de déploiement `web-app`, déploiement automatique activé.
 - PostgreSQL : `Calculateur-Postgres`, PostgreSQL 18, même workspace et même région que le service.
 - Base : `calculateur_postgres`.
-- La base `Calculateur-Postgres` est disponible et contient la table legacy `anonymous_visitors`; les tables relationnelles `subjects` et `grades` ne sont pas encore présentes.
-- Le précontrôle en lecture seule du 18 octobre a validé les **14 profils** présents : 10 matières, 28 notes et aucun profil invalide. Le contrôle a lu le JSON sans afficher ni modifier de données individuelles.
-- Une copie SQLite temporaire, construite à partir des JSON actuels sans les identifiants de visiteurs, a passé les migrations `0001` et `0002`, puis l'audit : 14 profils, 10 matières, 28 notes dans les deux formats et aucun écart. Cette vérification ne couvre pas les particularités de PostgreSQL.
-- Cette instance est la base primaire et aucune copie PostgreSQL n'est disponible dans le workspace Render. La restauration et la vérification sur une copie PostgreSQL restent à faire; aucune migration ni écriture n'a été lancée sur Render.
+- Les migrations `0001_relational_gradebook` et `0002_gradebook_version` ont été appliquées au démarrage du service; les tables `subjects` et `grades` sont présentes.
+- Le dernier audit de production a compté **16 profils, 10 matières et 28 notes** dans le JSON et les tables relationnelles, sans écart entre les formats. Deux profils supplémentaires ont été créés depuis le contrôle initial; aucun contenu individuel n'a été exporté dans ce document.
+- Le déploiement a exercé les migrations sur PostgreSQL de production. Les tests automatisés de migration en CI utilisent SQLite; ajouter une validation PostgreSQL reproductible reste utile.
+- Cette instance reste la base primaire; aucune copie PostgreSQL indépendante n'est disponible dans le workspace Render.
 - Expiration indiquée pour l'offre gratuite : **16 novembre 2026**.
 - L'accès réseau PostgreSQL comprend actuellement `0.0.0.0/0`. À revoir avant d'y stocker des données réelles.
 - La révision `0001_relational_gradebook` crée les tables relationnelles et
@@ -31,16 +30,16 @@
 
 ## Paramètres de production
 
-Le service est actuellement déployé depuis `web-app`; la fusion déclenchera le
-déploiement automatique. La nouvelle version réutilise `DATABASE_URL` et
-`SECRET_KEY`, déjà nécessaires à la version actuelle. `COOKIE_SECURE` garde sa
+Le service est déployé depuis `web-app`; les commits fusionnés déclenchent le
+déploiement automatique. L'application utilise `DATABASE_URL` et `SECRET_KEY`.
+`COOKIE_SECURE` garde sa
 valeur par défaut sécurisée sur Render. L'accès administrateur utilise
 `ADMIN_EMAIL` et `ADMIN_PASSWORD`; sans ces valeurs, le site public fonctionne,
 mais la connexion admin n'est pas disponible.
 
-## Variables requises pour la nouvelle version
+## Variables de production
 
-Vérifier ces variables dans le service web Render avant la fusion. Ne jamais
+Vérifier ces variables dans le service web Render. Ne jamais
 copier leurs valeurs dans le dépôt, les logs ou un ticket :
 
 | Variable | Valeur attendue |
@@ -57,19 +56,17 @@ Render fournit lui-même la variable `RENDER`. Le code adapte les URL PostgreSQL
 
 Le service web et la base sont dans la même région Frankfurt. L'URL interne utilise le réseau privé Render et n'expose pas le trafic à Internet public. L'URL externe doit être réservée aux connexions venant de l'extérieur et nécessite TLS.
 
-## Mise en service
+## Contrôles d'exploitation
 
-1. Créer un snapshot ou un export PostgreSQL avant la première mise en service. Ne pas supposer que `notes.json` est complet ou durable. Les copies `localStorage` restent propres à chaque navigateur.
-2. Vérifier `DATABASE_URL`, `SECRET_KEY` et, si l'espace admin est utilisé, `ADMIN_EMAIL` et `ADMIN_PASSWORD`. Privilégier l'URL interne PostgreSQL.
-3. Confirmer que la CI passe, puis fusionner la PR. Le push sur `web-app` lance le déploiement Render.
-4. Au démarrage, l'application valide tous les JSON avant migration. La migration s'exécute en transaction PostgreSQL et garde le JSON. Après migration, l'audit vérifie matières, notes et moyennes. Gunicorn ne sert les requêtes qu'après réussite de ces étapes.
-5. Après le déploiement, vérifier les logs et les tables `anonymous_visitors`, `subjects` et `grades`, puis tester page publique, modification de notes, connexion admin, export JSON et cookies HTTPS.
-6. Si le précontrôle échoue, le nouveau processus s'arrête sans modifier le schéma; consulter les profils signalés avant de relancer le déploiement. Prévoir un export avant l'expiration gratuite indiquée au **16 novembre 2026**.
+1. Programmer un export/snapshot indépendant de PostgreSQL et documenter sa restauration; les copies `localStorage` ne remplacent pas une sauvegarde de base.
+2. Privilégier `DATABASE_URL` interne depuis le service web et restreindre l'accès réseau PostgreSQL actuellement ouvert à `0.0.0.0/0`.
+3. Vérifier après chaque déploiement les logs, la page publique, une modification de note, la connexion admin, l'export JSON et les cookies HTTPS.
+4. Prévoir avant le **16 novembre 2026** une solution durable pour la base, dont l'offre gratuite arrive à expiration.
 
 ## Limites connues à résoudre avant une utilisation sérieuse
 
 - Le démarrage automatique exécute les migrations seulement lorsque `RENDER=true`; en local, utiliser `flask --app app db upgrade head`.
-- La migration et le verrou PostgreSQL n'ont pas encore été exécutés sur une copie PostgreSQL dans cet environnement. Les tests de migration disponibles s'exécutent sur SQLite; il faut surveiller le premier démarrage Render et garder le snapshot prêt à restaurer.
+- CI n'exerce pas encore la migration sur un PostgreSQL jetable; ajouter ce contrôle pour couvrir les particularités du moteur et éviter de dépendre de la production comme validation.
 - Flask-Limiter utilise actuellement le stockage mémoire : les compteurs sont réinitialisés au redémarrage et ne sont pas partagés entre plusieurs workers/instances.
 - Les tests CI forcent `DATABASE_URL=sqlite:///:memory:` pour empêcher qu'ils touchent la base de production.
 
@@ -78,7 +75,8 @@ Le service web et la base sont dans la même région Frankfurt. L'URL interne ut
 - [Service web](https://dashboard.render.com/web/srv-das15460tbcc73ddu0eg)
 - [Base PostgreSQL](https://dashboard.render.com/d/dpg-db9hqi5g1s2s738p1feg-a)
 
-Cette procédure ne modifie pas directement les ressources Render; le démarrage de la nouvelle application appliquera la migration après la fusion.
+Les migrations futures doivent passer par de nouvelles révisions Alembic. Le
+démarrage vérifie l'état des gradebooks avant de servir les requêtes.
 
 ## Synchronisation des données du navigateur
 
@@ -87,8 +85,9 @@ Le champ `anonymous_visitors.data_initialized` distingue un profil qui n'a jamai
 1. Lors de la première visite avec un profil non initialisé, le navigateur envoie l'état trouvé dans `localStorage` à `/api/synchroniser`. Si aucune copie locale n'existe, il envoie l'état serveur courant, même vide, afin de terminer l'initialisation.
 2. L'API valide les données avant de les enregistrer. Le contenu et le marqueur d'initialisation sont sauvegardés dans la même transaction.
 3. Après cette première synchronisation réussie, l'état du serveur devient la référence. Si une copie locale diffère ensuite, le navigateur la remplace par l'état du serveur au lieu de pousser automatiquement une ancienne copie vers PostgreSQL.
-4. Après les formulaires de modification, le navigateur récupère l'état serveur et actualise sa copie locale. En cas d'échec réseau ou d'écriture locale, le script ne supprime pas volontairement la copie locale.
-5. Chaque page porte la version du carnet; les écritures comparent cette version à celle en base. Une version périmée reçoit HTTP 409, l'état serveur est rechargé et la modification doit être rejouée.
+4. Si l'import initial échoue, la page affiche l'erreur, conserve la copie locale et propose de réessayer. Une sauvegarde téléchargeable contient la copie actuelle, la copie locale précédente et l'état serveur; l'application peut restaurer un fichier JSON ou la copie précédente après confirmation.
+5. Après les formulaires de modification, le navigateur récupère l'état serveur et actualise sa copie locale. En cas d'échec réseau ou d'écriture locale, le script ne supprime pas volontairement la copie locale.
+6. Chaque page porte la version du carnet; les écritures comparent cette version à celle en base. Une version périmée reçoit HTTP 409. L'import n'écrase pas automatiquement les données serveur en conflit; l'utilisateur doit confirmer la reprise.
 
 Cette politique permet de récupérer les données historiques d'un navigateur lors de son premier rattachement à un profil serveur. Elle ne peut pas fusionner automatiquement les données de plusieurs navigateurs : chacun a son propre cookie de profil et son propre `localStorage`.
 
@@ -97,7 +96,6 @@ Cette politique permet de récupérer les données historiques d'un navigateur l
 La révision `0001_relational_gradebook` ajoute `data_initialized` si nécessaire,
 crée les tables relationnelles et copie les profils JSON existants. La révision
 `0002_gradebook_version` ajoute le compteur de concurrence avec une valeur
-initiale de 1 pour les profils existants. La base
-Render inspectée le 17 octobre 2026 ne contenait aucune table; cette observation
-est historique et doit être revérifiée avant toute migration. Les mises à jour
-ultérieures du schéma doivent passer par de nouvelles révisions Alembic.
+initiale de 1 pour les profils existants. La migration initiale a été appliquée
+sur Render; les mises à jour ultérieures du schéma doivent passer par de
+nouvelles révisions Alembic.
