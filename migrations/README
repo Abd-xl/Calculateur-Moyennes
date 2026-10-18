@@ -1,0 +1,32 @@
+Migration commands for this branch:
+
+    flask --app app db upgrade head
+    flask --app app db downgrade base
+
+Review the target DATABASE_URL before running either command. Upgrade head
+preserves the legacy JSON column while copying its content into relational
+tables and adds a gradebook concurrency version. Downgrade base removes the
+relational tables and added version column while leaving the legacy JSON in
+place; application writes keep it synchronized during the compatibility window.
+
+On Render, application startup runs the read-only preflight, `upgrade head`,
+and the gradebook audit before serving requests. Set `AUTO_MIGRATE_DB=false`
+only when an operator intentionally needs to prevent startup migrations.
+Invalid legacy profiles stop startup before schema changes. The JSON column is
+preserved as the recovery copy throughout the migration.
+
+On a disposable copy of the target database, run the read-only JSON preflight
+before the migration:
+
+    flask --app app preflight-gradebooks
+
+After upgrade, compare both representations and their averages with:
+
+    flask --app app audit-gradebooks
+
+These commands report profile and grade counts and averages, exit with status 1
+if they find invalid or inconsistent data, and never repair or modify data.
+
+The initial migration validates every legacy profile before changing the
+schema. If a profile is invalid, it reports the profile ID and stops before
+creating relational tables or adding compatibility columns.

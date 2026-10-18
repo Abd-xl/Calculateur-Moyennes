@@ -6,7 +6,7 @@ Le projet conserve son cœur métier Python tout en ajoutant une interface HTML/
 
 ## Version actuelle
 
-**2.0.0 — branche `web-app`**
+**2.0.0 — refactor en cours sur `feature/admin-dashboard`**
 
 Cette version marque la transition du projet vers une application web Flask.
 
@@ -22,7 +22,8 @@ Cette version marque la transition du projet vers une application web Flask.
 - Suppression d'une note.
 - Suppression d'une matière.
 - Détection des matières existantes malgré les espaces superflus ou les différences de casse.
-- Sauvegarde des données dans `notes.json`.
+- Sauvegarde CLI historique dans `notes.json`.
+- Profils web anonymes avec persistance SQLAlchemy.
 - Interface web avec Flask et Jinja2.
 - Interface sombre et responsive avec HTML/CSS.
 - Fenêtres `dialog` pour modifier les notes sans agrandir les lignes du tableau.
@@ -35,7 +36,18 @@ Cette version marque la transition du projet vers une application web Flask.
 
 ```text
 .
-├── app.py
+├── app.py                         Point d'entrée compatible avec Gunicorn
+├── calculateur/
+│   ├── __init__.py                 Fabrique Flask
+│   ├── extensions.py               Extensions Flask
+│   ├── models.py                   Modèles SQLAlchemy
+│   ├── request_hooks.py             Identification du profil navigateur
+│   ├── security.py                  Authentification et IP cliente
+│   ├── routes/
+│   │   ├── public.py                Pages et API publiques
+│   │   └── admin.py                 Espace administrateur
+│   ├── repositories/                Adaptateurs JSON et SQLAlchemy
+│   └── services/                     Calculs et mutations métier partagés
 ├── gestion_note.py
 ├── sauvegarde.py
 ├── main.py
@@ -56,8 +68,13 @@ Cette version marque la transition du projet vers une application web Flask.
 
 ### Rôle des principaux fichiers
 
-- `app.py` : routes Flask et gestion des requêtes HTTP.
-- `gestion_note.py` : logique métier du calculateur et calcul des moyennes.
+- `app.py` : point d'entrée Flask conservé pour `gunicorn app:app`.
+- `calculateur/` : application web organisée par extensions, modèles, hooks,
+  routes et services.
+- `calculateur/services/` : règles de calcul et mutations indépendantes des
+  requêtes HTTP et de la sauvegarde.
+- `gestion_note.py` : opérations historiques utilisées par l'interface CLI;
+  les calculs sont partagés avec le service web.
 - `sauvegarde.py` : chargement et sauvegarde des données JSON.
 - `main.py` : ancienne interface en ligne de commande.
 - `templates/index.html` : tableau de bord principal.
@@ -65,7 +82,7 @@ Cette version marque la transition du projet vers une application web Flask.
 - `templates/notes.html` : affichage de toutes les notes.
 - `templates/tableur.html` : emplacement du futur mode tableur.
 - `static/style.css` : styles de l'interface web.
-- `notes.json` : données persistées localement.
+- `notes.json` : persistance locale de l'ancienne interface CLI.
 
 ## Modèle des notes
 
@@ -93,25 +110,26 @@ Cela permet d'afficher la note telle qu'elle a été saisie tout en utilisant un
 
 ## Architecture
 
-La branche `web-app` suit actuellement cette architecture :
+La branche `feature/admin-dashboard` suit actuellement cette architecture :
 
 ```text
 Navigateur
     │
     ▼
-Routes Flask (app.py)
+Fabrique Flask (calculateur/)
     │
     ▼
-Logique métier (gestion_note.py)
+Routes publiques et admin
     │
     ▼
-Persistance (sauvegarde.py)
+Service de calcul + modèles SQLAlchemy
     │
     ▼
-notes.json
+PostgreSQL / SQLite (état web) + localStorage (copie navigateur)
 ```
 
-Les interfaces ne doivent pas dupliquer les règles de gestion. Les opérations comme l'ajout, la modification, la suppression et le calcul sont centralisées dans la logique métier.
+Le calcul des moyennes est partagé entre le web et le CLI. L'extraction des
+validations et mutations en services métier indépendants est la prochaine étape.
 
 ## Installation
 
@@ -127,6 +145,7 @@ Cloner le dépôt :
 ```bash
 git clone https://github.com/Abd-xl/Calculateur-Moyennes.git
 cd Calculateur-Moyennes
+git switch feature/admin-dashboard
 ```
 
 Installer les dépendances :
@@ -136,6 +155,24 @@ pip install -r requirements.txt
 ```
 
 ### Application web
+
+Initialiser ou mettre à niveau le schéma local avec la migration versionnée :
+
+```bash
+flask --app app db upgrade head
+```
+
+Sur une copie jetable de la base, comparer le JSON de compatibilité avec les
+tables relationnelles et vérifier les comptes et moyennes :
+
+```bash
+flask --app app preflight-gradebooks  # avant la migration
+flask --app app db upgrade head
+flask --app app audit-gradebooks
+```
+
+Les commandes de précontrôle et d'audit sont en lecture seule; elles retournent
+un code d'erreur si elles trouvent un profil incohérent.
 
 Lancer Flask :
 
@@ -170,7 +207,11 @@ Build : pip install -r requirements.txt
 Start : gunicorn app:app
 ```
 
-La persistance actuelle repose encore sur `notes.json`. Une base de données, d'abord SQLite puis éventuellement PostgreSQL, est prévue pour une évolution plus robuste.
+Le service Render continue de déployer `web-app`. Cette branche de refactor
+utilise `DATABASE_URL` pour PostgreSQL en production et SQLite par défaut en
+local. Le schéma doit être mis à niveau avec `flask --app app db upgrade` avant
+de démarrer la nouvelle version. Aucun changement de déploiement n'est effectué
+par ce refactor.
 
 ## Développement
 

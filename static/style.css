@@ -738,6 +738,21 @@ dialog::backdrop {
     color: #e6ecf7;
 }
 .admin-button--secondary:hover { background: #202a3a; border-color: #465574; }
+.admin-button--danger { border-color: #a94350; background: #842f3a; color: #fff; }
+.admin-button--danger:hover { background: #a13c49; border-color: #c65360; }
+.admin-delete-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 0 0 30px;
+    padding: 18px;
+    border: 1px solid #67343b;
+    border-radius: 13px;
+    background: #21171b;
+}
+.admin-delete-section h2 { margin: 0 0 6px; font-size: 1rem; }
+.admin-delete-section p { margin: 0; color: #c5aeb2; line-height: 1.5; }
 .admin-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -803,6 +818,17 @@ dialog::backdrop {
 }
 .admin-search input::placeholder { color: #7d899d; }
 .admin-search:focus-within { border-color: #3478f6; box-shadow: 0 0 0 3px rgb(52 120 246 / 14%); }
+.admin-search .admin-button { flex-shrink: 0; }
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    color: #b0bacb;
+    font-size: .9rem;
+}
+.admin-pagination a { text-decoration: none; }
 .admin-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .visitor-card {
     min-width: 0;
@@ -863,6 +889,8 @@ dialog::backdrop {
 }
 .admin-page form button[type="submit"]:hover { background: #2867db; }
 .admin-page .message { color: #ffd3d8; border-color: #5b303a; background: #2a171d; }
+.admin-page .message--success { color: #c5f4d0; border-color: #2e6841; background: #14241a; }
+.admin-delete-section form { margin: 0; }
 .admin-detail-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0 28px; }
 .admin-detail-meta > div { padding: 15px; border: 1px solid #252e3d; border-radius: 12px; background: #141923; }
 .admin-detail-meta dt { margin-bottom: 7px; color: #8f9bb0; font-size: .78rem; }
@@ -899,4 +927,5 @@ dialog::backdrop {
     .visitor-card { padding: 16px; }
     .visitor-card__meta { grid-template-columns: .7fr 1.3fr; }
     .admin-detail-meta { grid-template-columns: 1fr; }
+    .admin-delete-section { align-items: stretch; flex-direction: column; }
 }

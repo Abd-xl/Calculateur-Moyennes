@@ -25,6 +25,17 @@
       <div><dl><dt>Dernière activité</dt><dd>{{ user.last_seen_at.strftime("%d/%m/%Y à %H:%M") if user.last_seen_at else "—" }}</dd></dl></div>
     </section>
 
+    <section class="admin-delete-section" aria-labelledby="delete-profile-title">
+      <div>
+        <h2 id="delete-profile-title">Supprimer ce profil</h2>
+        <p>Cette action efface définitivement les données de notes et les informations associées à ce profil.</p>
+      </div>
+      <form method="post" action="{{ url_for('admin_delete_visitor', user_id=user.id) }}" onsubmit="return confirm('Supprimer définitivement ce profil et toutes ses données ?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="admin-button admin-button--danger" type="submit">Supprimer le profil</button>
+      </form>
+    </section>
+
     <section>
       <div class="admin-list-heading">
         <div><h2>Notes enregistrées</h2><p>{{ data.notes|length }} matière(s) dans ce profil.</p></div>
