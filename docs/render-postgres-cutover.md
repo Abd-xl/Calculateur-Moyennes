@@ -1,4 +1,20 @@
-# PostgreSQL sur Render : état et exploitation
+# Document historique — ancienne architecture PostgreSQL
+
+> **ARCHIVÉ :** ce document décrit l'ancienne mise en service PostgreSQL de la
+> branche `web-app`. La branche `feature/local-first-storage` retire cette
+> intégration de l'application web. Ne pas utiliser les instructions ci-dessous
+> pour configurer la nouvelle version.
+>
+> Cette documentation est conservée uniquement pour retracer l'architecture
+> précédente et comprendre d'où proviennent les anciennes données.
+>
+> **Important pour la transition :** les données présentes exclusivement dans
+> PostgreSQL ne sont pas automatiquement importées dans le nouveau stockage
+> local. Seules les copies conservées dans le navigateur ou les exports JSON
+> peuvent être réutilisées avec la nouvelle architecture.
+
+---
+
 
 > **État au 18 octobre 2026 : migration déployée et exécutée en production.**
 > Ce document décrit l'état actuel et les contrôles qui restent à faire pour
