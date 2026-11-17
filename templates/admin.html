@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Administration — Calculateur de moyennes</title>
+  <title>Administration indisponible — Calculateur de moyennes</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="admin-page">
@@ -13,87 +12,26 @@
       <div>
         <p class="admin-eyebrow">Calculateur de moyennes</p>
         <h1>Espace administrateur</h1>
-        <p class="admin-subtitle">Vue d’ensemble des profils anonymes enregistrés.</p>
-      </div>
-      <div class="admin-header__actions">
-        <a class="admin-button admin-button--secondary" href="{{ url_for('admin_export') }}">Exporter JSON</a>
-        <form method="post" action="{{ url_for('admin_logout') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="admin-button admin-button--primary" type="submit">Déconnexion</button>
-        </form>
+        <p class="admin-subtitle">Tableau de bord conservé, mais désactivé.</p>
       </div>
     </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <p class="message message--{{ category }}" role="status">{{ message }}</p>
-      {% endfor %}
-    {% endwith %}
-
-    <section class="admin-stats" aria-label="Statistiques">
-      <article class="admin-stat"><span class="admin-stat__label">Profils enregistrés</span><strong>{{ total_visitors }}</strong><span class="admin-stat__hint">Tous navigateurs</span></article>
-      <article class="admin-stat"><span class="admin-stat__label">Matières enregistrées</span><strong>{{ total_subjects }}</strong><span class="admin-stat__hint">Cumul des profils</span></article>
-      <article class="admin-stat"><span class="admin-stat__label">Notes enregistrées</span><strong>{{ total_notes }}</strong><span class="admin-stat__hint">Cumul des profils</span></article>
-    </section>
-
-    <section class="admin-list-section">
-      <div class="admin-list-heading">
-        <div><h2>Profils visiteurs</h2><p>Les profils les plus récemment actifs apparaissent en premier.</p></div>
-        <span class="admin-count">{{ result_count }} résultat(s)</span>
+    <section class="admin-list-section" aria-labelledby="admin-status-title">
+      <div class="message" role="status">
+        <h2 id="admin-status-title">Fonctionnalité non fonctionnelle</h2>
+        <p>
+          L'administration des profils visiteurs est désactivée depuis le passage
+          au stockage local. Aucun profil centralisé n'est collecté par cette
+          version de l'application.
+        </p>
+        <p>
+          La connexion administrateur, la consultation des profils, leur
+          suppression et l'export centralisé ne sont donc pas disponibles.
+        </p>
       </div>
-      <form class="admin-search" method="get" action="{{ url_for('admin_dashboard') }}">
-        <span aria-hidden="true">⌕</span>
-        <input name="q" type="search" value="{{ search }}" placeholder="Rechercher un identifiant ou un navigateur…" autocomplete="off" aria-label="Rechercher un profil">
-        <button class="admin-button admin-button--secondary" type="submit">Rechercher</button>
-      </form>
-
-      <div class="admin-cards">
-        {% for u in users %}
-          {% set stats = visitor_stats.get(u.id, {"subjects": 0, "grades": 0}) %}
-          <article class="visitor-card">
-            <div class="visitor-card__top">
-              <div><span class="visitor-card__label">Profil #{{ u.id }}</span><h3>{{ u.public_id }}</h3></div>
-              <span class="visitor-badge">{{ stats.grades }} note(s)</span>
-            </div>
-            <p class="visitor-card__browser">{{ u.browser_info or "Navigateur inconnu" }}</p>
-            <div class="visitor-card__meta">
-              <div><span>Matières</span><strong>{{ stats.subjects }}</strong></div>
-              <div><span>Dernière activité</span><strong>{{ u.last_seen_at.strftime("%d/%m/%Y à %H:%M") if u.last_seen_at else "—" }}</strong></div>
-            </div>
-            <a class="admin-button admin-button--primary visitor-card__action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter le profil <span aria-hidden="true">→</span></a>
-          </article>
-        {% else %}
-          <div class="admin-empty"><h3>{{ "Aucun résultat" if search else "Aucun profil enregistré" }}</h3><p>{{ "Aucun profil ne correspond à cette recherche." if search else "Les profils apparaîtront ici lorsqu’un navigateur utilisera l’application." }}</p></div>
-        {% endfor %}
-      </div>
-
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>Profil</th><th>Identifiant anonyme</th><th>Navigateur / appareil</th><th>Première visite</th><th>Dernière activité</th><th>Matières</th><th>Notes</th><th>Action</th></tr></thead>
-          <tbody>
-            {% for u in users %}
-              {% set stats = visitor_stats.get(u.id, {"subjects": 0, "grades": 0}) %}
-              <tr>
-                <td>#{{ u.id }}</td><td class="admin-id">{{ u.public_id }}</td>
-                <td class="admin-browser">{{ u.browser_info or "Navigateur inconnu" }}</td>
-                <td>{{ u.created_at.strftime("%d/%m/%Y %H:%M") if u.created_at else "—" }}</td>
-                <td>{{ u.last_seen_at.strftime("%d/%m/%Y %H:%M") if u.last_seen_at else "—" }}</td>
-                <td>{{ stats.subjects }}</td><td>{{ stats.grades }}</td>
-                <td><a class="admin-table-action" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Consulter</a></td>
-              </tr>
-            {% else %}
-              <tr><td colspan="8" class="admin-table-empty">Aucun profil enregistré.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% if total_pages > 1 %}
-        <nav class="admin-pagination" aria-label="Pagination des profils">
-          {% if page > 1 %}<a class="admin-button admin-button--secondary" href="{{ url_for('admin_dashboard', page=page - 1, q=search or None) }}">← Précédent</a>{% endif %}
-          <span>Page {{ page }} sur {{ total_pages }}</span>
-          {% if page < total_pages %}<a class="admin-button admin-button--secondary" href="{{ url_for('admin_dashboard', page=page + 1, q=search or None) }}">Suivant →</a>{% endif %}
-        </nav>
-      {% endif %}
+      <a class="admin-button admin-button--primary" href="{{ url_for('accueil') }}">
+        Retour au calculateur
+      </a>
     </section>
   </main>
 </body>
