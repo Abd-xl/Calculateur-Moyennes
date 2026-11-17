@@ -2,39 +2,36 @@
 
 ## État actuel
 
-La branche `web-app` contient l'application Flask, une interface Jinja2, un
-profil par navigateur, une persistance PostgreSQL/SQLAlchemy et l'ancienne
-interface CLI. Le refactor principal et la migration du gradebook sont déployés;
-les étapes ci-dessous suivent les travaux encore ouverts.
+La branche `feature/local-first-storage` retire PostgreSQL de l'application web.
+Le carnet web durable est enregistré dans le `localStorage` de chaque
+navigateur. Flask sert les pages et utilise un cache mémoire temporaire pour
+conserver le rendu Jinja et vérifier les versions.
 
-## Refactor
+## Transition local-first
 
-- [x] Extraire la fabrique d'application et préserver `gunicorn app:app`.
-- [x] Séparer modèles, extensions, hooks de requête, routes admin et routes
-  publiques.
-- [x] Partager le calcul des moyennes entre l'application web et le CLI.
-- [x] Extraire calculs et mutations des notes dans des services métier sans état global.
-- [x] Déplacer la validation des données dans un service métier partagé.
-- [x] Formaliser les adaptateurs JSON du CLI et SQLAlchemy du web derrière une
-  API de persistance séparée.
-- [x] Ajouter Alembic, le modèle relationnel et une migration JSON vers matières/notes.
-- [x] Exécuter la migration PostgreSQL au démarrage et vérifier les comptes/totaux en production.
-- [x] Ajouter un précontrôle en lecture seule des profils JSON avant migration.
-- [x] Ajouter un audit en lecture seule du JSON et des gradebooks relationnels.
-- [ ] Retirer la copie JSON après la période de compatibilité.
-- [x] Migrer les profils JSON vers les tables relationnelles en conservant le JSON de repli.
-- [x] Rendre visible l'échec de l'import navigateur et permettre la reprise depuis une sauvegarde.
-- [x] Versionner l'état pour repérer les conflits de synchronisation.
-- [x] Paginer l'admin, filtrer côté base et calculer les totaux côté base.
-- [x] Permettre à l'administrateur de supprimer un profil et ses données depuis son détail.
-- [x] Définir la conservation manuelle des profils jusqu'à leur suppression par l'administrateur.
-- [x] Documenter l'export et les limites de suppression (notamment les copies locales navigateur).
+- [x] Conserver l'interface et les règles métier existantes.
+- [x] Remplacer la persistance SQL par un cache mémoire temporaire.
+- [x] Faire du stockage local du navigateur la source de réhydratation du cache.
+- [x] Conserver la sauvegarde JSON, l'import et la restauration d'une copie.
+- [x] Conserver le tableau admin sous forme de page de statut désactivée.
+- [x] Retirer les routes de consultation, suppression et export des visiteurs.
+- [x] Retirer les modèles, extensions, migrations et commandes SQL de l'application.
+- [ ] Exécuter la suite complète de tests dans CI.
+- [ ] Vérifier le flux de synchronisation dans un vrai navigateur.
+- [ ] Vérifier le démarrage Render avec un seul worker avant fusion.
+- [ ] Confirmer la récupération des données locales existantes et les sauvegardes JSON avant de désactiver la base de production.
 
-## Contraintes
+## Limites à conserver en tête
 
-- Garder les URL existantes tant que les templates et les clients ne sont pas
-  migrés.
-- Ne pas modifier les variables Render ni déployer depuis cette branche sans
-  une étape explicite de mise en service.
-- Ne pas lancer de migration destructive; préparer et vérifier un chemin de
-  retour avant de changer le schéma de production.
+- Pas de synchronisation entre navigateurs ou appareils.
+- Le cache mémoire peut être perdu à chaque redémarrage ; les données durables
+  doivent rester dans `localStorage` ou dans un export JSON.
+- Plusieurs workers Gunicorn ou plusieurs instances Render ne sont pas
+  compatibles avec ce cache temporaire.
+- Les notes conservées uniquement dans PostgreSQL ne seront pas récupérées
+  automatiquement. Les copies locales ou exports JSON sont nécessaires.
+
+## Contraintes de mise en service
+
+Ne pas modifier la branche `web-app`, fusionner la branche ou changer le
+déploiement Render sans une étape explicite de mise en service.
