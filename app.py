@@ -3,8 +3,6 @@
 import os
 
 from calculateur import create_app
-from calculateur.extensions import db
-from calculateur.models import Visitor
 
 app = create_app()
 

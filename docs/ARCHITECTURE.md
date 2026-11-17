@@ -5,95 +5,85 @@
 ```text
 Navigateur
    ├── pages HTML rendues par Flask
-   └── localStorage (copie de secours et import initial)
+   ├── localStorage (source durable du carnet)
+   └── fichiers JSON (sauvegarde et transfert manuel)
           │
+          ├── envoi de l'état au chargement
           ▼
-Routes publiques ───── Routes admin
-          │                  │
-   ├── services métier│      ├── agrégats SQL paginés
-   ├── hooks visiteur │      └── adaptateur gradebook
-   └── adaptateur SQLAlchemy
-                    │
-                    ▼
-      visiteurs, matières et notes
-          └── JSON de compatibilité
+Routes publiques Flask
+   ├── services métier
+   └── cache mémoire temporaire
+       ├── rendu des pages Jinja
+       └── contrôle de version des modifications
 ```
 
-Le point d'entrée historique `app.py` expose toujours `app:app` pour Gunicorn.
-La fabrique `calculateur.create_app()` configure l'application, les extensions,
-les routes et les hooks de requête. `calculateur/services/grades.py` contient les
-calculs partagés et `calculateur/services/gradebook.py` les mutations métier
-sans état global. Le CLI conserve `gestion_note.py` comme adaptateur vers le JSON
-local. Les routes publiques et admin sont enregistrées séparément tout en
-conservant les URL et les noms d'endpoint existants.
+Le point d'entrée `app.py` expose toujours `app:app` pour Gunicorn. La fabrique
+`calculateur.create_app()` initialise les routes, la protection CSRF et un
+repository mémoire propre au processus Flask.
 
-`calculateur/repositories/visitor_gradebook.py` isole les lectures et écritures
-des données web. `calculateur/repositories/json_file.py` is l'adaptateur du CLI;
-`sauvegarde.py` conserve temporairement l'API historique autour de cet adaptateur.
-Les deux adaptateurs valident le même format métier.
+Les services métier `grades.py`, `gradebook.py` et `validation.py` restent
+indépendants du stockage. Le repository mémoire ne conserve qu'une copie
+temporaire, indexée par un identifiant de navigateur placé dans la session
+Flask signée. Les templates existants continuent ainsi à être rendus côté
+serveur sans que les données durables soient enregistrées sur le serveur.
 
-L'administration filtre et pagine les visiteurs en base. Ses compteurs globaux
-et les nombres de matières/notes par profil sont agrégés depuis les tables
-relationnelles; les détails et l'export passent par l'adaptateur gradebook.
+## Source durable et récupération
 
-Le format JSON stocké par visiteur reste `{"notes": {...}, "coef": {...}}`.
-`localStorage` sert à récupérer les anciennes données lors de la première
-synchronisation et conserve ensuite une copie locale; PostgreSQL reste la source
-de vérité après l'initialisation.
+Le format stable du carnet est :
 
-Si l'import initial échoue, l'interface garde la copie locale, affiche l'erreur
-et propose de réessayer. Une sauvegarde exportée peut être restaurée dans le
-profil courant; les conflits de version demandent une confirmation avant de
-remplacer les données serveur. L'export contient la copie actuelle du navigateur,
-la copie locale précédente et l'état serveur au moment du téléchargement.
+```json
+{
+  "notes": {
+    "Maths": [{"note": 15, "bareme": 20}]
+  },
+  "coef": {"Maths": 3}
+}
+```
 
-## Persistance et déploiement
+- `localStorage` est la source durable du carnet web sur un navigateur donné.
+- `static/local_storage.js` initialise ou réhydrate le cache mémoire depuis la
+  copie locale.
+- Les modifications réussies sont recopiées dans `localStorage`.
+- Une sauvegarde JSON exporte la copie locale, la copie locale précédente et
+  un instantané du cache temporaire.
+- Un import JSON ou une restauration locale remplace le carnet courant après
+  confirmation et validation.
+- Les anciennes sauvegardes contenant les champs `local_storage`,
+  `previous_local_backup` ou `server_state` restent reconnues.
 
-- PostgreSQL est configuré avec `DATABASE_URL`; SQLite sert au développement.
-- Les migrations Flask-Migrate/Alembic définissent le schéma. La révision
-  `0001_relational_gradebook` conserve le JSON et copie les profils vers les
-  tables relationnelles; `0002_gradebook_version` ajoute une version de carnet.
-- Le champ JSON reste synchronisé pendant la période de compatibilité et sert
-  de format de repli lors d'un downgrade.
-- Les écritures du navigateur joignent leur version courante. Une mise à jour
-  conditionnelle refuse une version périmée avec HTTP 409 et renvoie l'état
-  serveur à recharger au lieu d'écraser les changements concurrents.
-- `flask --app app audit-gradebooks` compare en lecture seule le JSON de
-  compatibilité, les matières/notes relationnelles et les moyennes par lots.
-- `flask --app app preflight-gradebooks` valide en lecture seule le JSON source
-  et établit les comptes de référence avant la migration.
-- Flask-Limiter utilise `RATELIMIT_STORAGE_URI`, avec `memory://` par défaut.
-- Les routes admin sont protégées par la session Flask et les identifiants
-  `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
-- Depuis le détail d'un profil, l'administrateur peut le supprimer par POST
-  protégé par CSRF; les matières et notes liées sont supprimées avec lui.
-- `GET /admin/export.json` exporte tous les profils, leurs identifiants anonymes,
-  les informations navigateur, les dates et les carnets de notes; l'admin exige
-  une session authentifiée. L'export lit les profils par lots de 100 et les
-  réponses `/admin` portent `Cache-Control: no-store` pour éviter leur mise en
-  cache.
-- Supprimer un profil efface ses données côté serveur, mais ne supprime pas les
-  fichiers d'export déjà téléchargés, les sauvegardes de base ni les copies
-  `localStorage` conservées sur les appareils des visiteurs.
-- Les profils sont conservés jusqu'à leur suppression manuelle par
-  l'administrateur; aucune purge automatique n'est prévue.
-- `SECRET_KEY` est obligatoire lorsque `RENDER=true`.
+Le cache est borné en nombre de profils. Un profil évincé peut être rechargé
+depuis le navigateur. Le cache n'est pas durable : après un redémarrage de
+Render, le navigateur recharge son carnet local lors de la prochaine visite.
 
-La procédure de préparation PostgreSQL, les étapes de mise en service et les
-limites connues sont documentées dans
-[`render-postgres-cutover.md`](render-postgres-cutover.md). Aucun changement de
-base ou de déploiement ne fait partie du refactor local.
+## Limites opérationnelles
 
-## Étapes de refactor
+- Un navigateur possède son propre carnet. Il n'y a plus de compte utilisateur,
+  de profil centralisé ni de synchronisation entre appareils.
+- Une suppression des données du site, une perte de navigateur ou d'appareil
+  peut faire perdre le carnet si aucune sauvegarde JSON n'existe.
+- Le serveur doit utiliser **un worker Gunicorn**. Les workers ou instances
+  multiples ne partagent pas leur mémoire et produiraient des états distincts.
+- L'interface est rendue par Flask : elle nécessite une connexion au serveur.
+  Le cache mémoire n'est pas une prise en charge du mode hors ligne.
+- Le jeton de profil est contenu dans une session Flask signée, protégée par
+  `SECRET_KEY`; il ne contient pas les notes.
 
-1. Extraire la fabrique Flask, les extensions, les modèles, les hooks, les
-   groupes de routes et les règles métier tout en gardant les URL, le schéma et
-   le point d'entrée.
-2. Vérifier la migration dans un environnement de développement et établir un
-   contrôle des comptes/totaux avant toute utilisation avec des données réelles.
-3. La version du carnet détecte les modifications simultanées; définir ensuite
-   une stratégie de fusion si l'on veut combiner les modifications concurrentes.
+## Administration
 
-Avant toute mise en production, vérifier la migration sur une copie de données,
-confirmer les comptes et totaux, et définir la procédure de synchronisation
-multi-appareils.
+La page `/admin` est conservée comme page de statut et répond HTTP 503. Elle
+indique que l'administration est non fonctionnelle. Les routes de connexion,
+de consultation, de suppression et d'export des visiteurs ne sont plus
+enregistrées. Aucun profil visiteur centralisé n'est collecté.
+
+## Déploiement
+
+- Dépendances web : Flask, Flask-WTF et Gunicorn.
+- Démarrage conseillé : `gunicorn --workers 1 app:app`.
+- `SECRET_KEY` est obligatoire sur Render pour signer les sessions.
+- Aucune configuration `DATABASE_URL` n'est requise.
+- PostgreSQL, SQLite applicatif, SQLAlchemy, Flask-Migrate, Alembic et les
+  migrations ne font plus partie de l'application web.
+
+Le dépôt conserve `notes.json` et son repository JSON pour l'ancienne
+interface CLI. Cette sauvegarde terminal est indépendante du `localStorage`
+utilisé par l'application web.

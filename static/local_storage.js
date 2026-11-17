@@ -85,7 +85,7 @@
         button.textContent = "Télécharger une sauvegarde des données";
         const help = document.createElement("p");
         help.className = "recovery-help";
-        help.textContent = "La sauvegarde contient la copie du navigateur et l'état serveur.";
+        help.textContent = "La sauvegarde contient la copie durable du navigateur et un instantané du cache temporaire.";
 
         const restoreButton = document.createElement("button");
         restoreButton.type = "button";
@@ -145,7 +145,7 @@
             const counts = describeState(backup);
             if (!window.confirm(
                 `Restaurer la copie précédente (${counts.subjects} matière(s), ${counts.grades} note(s)) ? ` +
-                "L'état actuel du serveur sera remplacé si l'import réussit."
+                "La copie locale actuelle sera sauvegardée avant le remplacement."
             )) return;
             await importState(backup);
         });
@@ -167,7 +167,7 @@
                 const counts = describeState(state);
                 if (!window.confirm(
                     `Importer ${counts.subjects} matière(s) et ${counts.grades} note(s) dans ce profil ? ` +
-                    "L'état actuel du serveur sera remplacé si l'import réussit."
+                    "La copie locale actuelle sera sauvegardée avant le remplacement."
                 )) return;
                 await importState(state);
             } catch (error) {
@@ -179,7 +179,7 @@
         retryButton.addEventListener("click", async () => {
             if (!pendingImportState) return;
             if (pendingConflict && !window.confirm(
-                "Le serveur contient des données plus récentes. Remplacer ces données par la copie sélectionnée ?"
+                "Le cache temporaire a changé depuis le chargement. Le remplacer par la copie sélectionnée ?"
             )) return;
             await importState(pendingImportState);
         });
@@ -311,8 +311,8 @@
             refreshPreviousRestoreAvailability();
             setRecoveryMessage(
                 localSaved
-                    ? "Import réussi. Les données enregistrées sur le serveur sont rechargées."
-                    : "Import réussi sur le serveur, mais le navigateur n'a pas pu actualiser sa copie locale. Télécharge une sauvegarde avant de quitter cette page."
+                    ? "Import réussi. La copie locale et le cache temporaire sont synchronisés."
+                    : "Import transmis au cache temporaire, mais le navigateur n'a pas pu actualiser sa copie locale. Télécharge une sauvegarde avant de quitter cette page."
             );
             window.location.reload();
         } catch (error) {
@@ -340,81 +340,104 @@
     }
 
     async function initialiserStockageLocal() {
-        let serverState;
+        let cacheState;
         try {
-            serverState = JSON.parse(stateElement.textContent);
+            cacheState = JSON.parse(stateElement.textContent);
         } catch (error) {
-            console.warn("État serveur invalide.", error);
+            console.warn("État initial invalide.", error);
             return;
         }
 
         const localState = readLocalState();
         const alreadyInitialized = stateElement.dataset.initialized === "true";
 
-        if (!alreadyInitialized) {
-            // Migration unique : on importe l'ancien état du navigateur. Si
-            // aucune copie locale n'existe, on initialise le profil avec l'état serveur.
-            try {
-                const savedState = await envoyerEtatAuServeur(
-                    localState ?? serverState,
-                    stateElement.dataset.version
-                );
-                const localSaved = writeLocalState(savedState);
-                refreshPreviousRestoreAvailability();
-                pendingImportState = null;
-                pendingConflict = false;
-                if (!localSaved) {
-                    setRecoveryMessage("Les données sont enregistrées sur le serveur, mais le navigateur n'a pas pu actualiser sa copie locale. Télécharge une sauvegarde.");
-                }
-                window.location.reload();
-            } catch (error) {
-                // Ne jamais remplacer la copie locale avant que l'import soit confirmé.
-                console.warn("Import initial impossible ; les données locales sont conservées.", error);
-                pendingImportState = localState ?? serverState;
-                if (error.status === 409 && error.payload?.version !== undefined) {
-                    stateElement.dataset.version = String(error.payload.version);
-                    if (error.payload.data) {
-                        stateElement.textContent = JSON.stringify(error.payload.data);
-                    }
-                    pendingConflict = true;
-                    const localCounts = describeState(pendingImportState);
-                    const serverCounts = describeState(error.payload.data || {});
-                    setRecoveryMessage(
-                        `Un autre navigateur a initialisé ce profil. Ta copie contient ${localCounts.subjects} matière(s) et ${localCounts.grades} note(s); le serveur en contient ${serverCounts.subjects} et ${serverCounts.grades}. Télécharge une sauvegarde ou confirme l'import local.`,
-                        { showRetry: true, lockEditing: true }
+        // localStorage est la copie durable et prioritaire. Le serveur ne garde
+        // qu'un cache mémoire qui peut disparaître lors d'un redémarrage.
+        if (localState !== null) {
+            if (!alreadyInitialized || !sameState(localState, cacheState)) {
+                try {
+                    const savedState = await envoyerEtatAuServeur(
+                        localState,
+                        stateElement.dataset.version
                     );
-                } else {
+                    stateElement.dataset.version = String(Number(stateElement.dataset.version) + 1);
+                    stateElement.dataset.initialized = "true";
+                    stateElement.textContent = JSON.stringify(savedState);
+                    const localSaved = writeLocalState(savedState);
+                    refreshPreviousRestoreAvailability();
+                    pendingImportState = null;
                     pendingConflict = false;
-                    const reason = error.payload?.error || error.message || "erreur réseau";
-                    setRecoveryMessage(
-                        `L'import initial a échoué (${reason}). Tes données locales sont conservées. Réessaie ou restaure un fichier JSON.`,
-                        { showRetry: true, lockEditing: true }
-                    );
+                    if (!localSaved) {
+                        setRecoveryMessage(
+                            "Le cache temporaire a été réhydraté, mais la copie locale n'a pas pu être actualisée. Télécharge une sauvegarde."
+                        );
+                    }
+                    window.location.reload();
+                } catch (error) {
+                    console.warn("Réhydratation du cache impossible ; la copie locale est conservée.", error);
+                    pendingImportState = localState;
+                    if (error.status === 409 && error.payload?.version !== undefined) {
+                        stateElement.dataset.version = String(error.payload.version);
+                        if (error.payload.data) {
+                            stateElement.textContent = JSON.stringify(error.payload.data);
+                        }
+                        pendingConflict = true;
+                        const localCounts = describeState(localState);
+                        const cacheCounts = describeState(error.payload.data || {});
+                        setRecoveryMessage(
+                            `Conflit de synchronisation : ta copie locale contient ${localCounts.subjects} matière(s) et ${localCounts.grades} note(s); le cache temporaire en contient ${cacheCounts.subjects} et ${cacheCounts.grades}. Télécharge une sauvegarde ou confirme le remplacement du cache par ta copie locale.`,
+                            { showRetry: true, lockEditing: true }
+                        );
+                    } else {
+                        pendingConflict = false;
+                        const reason = error.payload?.error || error.message || "erreur réseau";
+                        setRecoveryMessage(
+                            `La réhydratation du cache a échoué (${reason}). Tes données locales sont conservées. Réessaie ou restaure un fichier JSON.`,
+                            { showRetry: true, lockEditing: true }
+                        );
+                    }
                 }
+                return;
             }
             return;
         }
 
-        // Après l'import initial, PostgreSQL est la source de vérité.
-        if (localState === null || !sameState(localState, serverState)) {
-            const previousLocalCopyExists = readRaw(STORAGE_KEY) !== null;
-            if (!writeLocalState(serverState)) {
-                setRecoveryMessage("La copie du navigateur diffère des données serveur et n'a pas pu être actualisée. Elle reste conservée; télécharge une sauvegarde avant de la remplacer.");
-            } else if (previousLocalCopyExists) {
+        // Si le navigateur n'a aucune copie locale, récupérer le cache existant
+        // lorsqu'il est disponible. Après un redémarrage, le cache est vide et
+        // cette branche initialise simplement localStorage avec un carnet vide.
+        if (!alreadyInitialized) {
+            try {
+                const savedState = await envoyerEtatAuServeur(
+                    cacheState,
+                    stateElement.dataset.version
+                );
+                stateElement.dataset.version = String(Number(stateElement.dataset.version) + 1);
+                stateElement.dataset.initialized = "true";
+                stateElement.textContent = JSON.stringify(savedState);
+                const localSaved = writeLocalState(savedState);
                 refreshPreviousRestoreAvailability();
-                setRecoveryMessage("Les données du navigateur différaient du serveur. La copie locale précédente a été sauvegardée; tu peux la restaurer ou télécharger une sauvegarde.");
-            } else {
-                refreshPreviousRestoreAvailability();
+                if (!localSaved) {
+                    setRecoveryMessage(
+                        "Le cache temporaire est initialisé, mais le navigateur n'a pas pu créer sa copie locale. Télécharge une sauvegarde dès que possible."
+                    );
+                }
+                window.location.reload();
+            } catch (error) {
+                console.warn("Initialisation locale impossible.", error);
+                setRecoveryMessage(
+                    "Impossible d'initialiser le stockage local. Aucune donnée existante n'a été écrasée.",
+                    { showRetry: true, lockEditing: true }
+                );
             }
+            return;
         }
-    }
 
-    async function recupererEtatApresModification() {
-        const response = await fetch("/api/etat", { cache: "no-store" });
-        if (!response.ok) {
-            throw new Error("Impossible de récupérer l'état du serveur.");
+        if (!writeLocalState(cacheState)) {
+            setRecoveryMessage(
+                "Aucune copie locale n'existe et le navigateur n'a pas pu enregistrer le cache temporaire. Télécharge une sauvegarde dès que possible."
+            );
         }
-        return response.json();
+        refreshPreviousRestoreAvailability();
     }
 
     document.addEventListener("submit", async (event) => {
@@ -452,13 +475,14 @@
                 body: new FormData(form),
             });
         } catch (error) {
-            console.warn("La soumission JavaScript a échoué.", error);
+            console.warn("La soumission JavaScript a échoué ; aucune mutation de secours n'est envoyée.", error);
             form.dataset.submitting = "false";
             if (submitButton) {
                 submitButton.disabled = false;
             }
-            form.dataset.nativeSubmit = "true";
-            form.submit();
+            setRecoveryMessage(
+                "Impossible de confirmer la modification avec le serveur. Aucune autre soumission n'a été envoyée et la copie locale est conservée. Vérifie ta connexion puis réessaie."
+            );
             return;
         }
 
@@ -469,10 +493,39 @@
             } catch (error) {
                 conflict = null;
             }
-            if (conflict?.data) {
-                writeLocalState(conflict.data);
+
+            // localStorage est prioritaire : ne jamais le remplacer par le
+            // contenu du cache en cas de conflit (il peut être vide après
+            // redémarrage ou éviction d'un profil).
+            const localState = readLocalState();
+            if (localState && Number.isInteger(conflict?.version)) {
+                try {
+                    const restoredState = await envoyerEtatAuServeur(
+                        localState,
+                        conflict.version
+                    );
+                    stateElement.dataset.version = String(conflict.version + 1);
+                    stateElement.dataset.initialized = "true";
+                    if (!writeLocalState(restoredState)) {
+                        setRecoveryMessage(
+                            "Le cache temporaire a été réhydraté, mais le navigateur n'a pas pu confirmer sa copie locale. Les données locales précédentes sont conservées.",
+                            { lockEditing: true }
+                        );
+                        return;
+                    }
+                    window.location.reload();
+                    return;
+                } catch (error) {
+                    console.warn("Impossible de restaurer le cache depuis la copie locale.", error);
+                    setRecoveryMessage(
+                        "Le cache temporaire n'a pas pu être restauré. Ta copie locale n'a pas été remplacée. Réessaie avant de modifier les données.",
+                        { showRetry: true, lockEditing: true }
+                    );
+                    return;
+                }
             }
-            window.alert("Ce profil a changé dans un autre onglet ou appareil. Les dernières données ont été rechargées; recommence ta modification.");
+
+            window.alert("Conflit détecté. Aucune donnée locale n'a été remplacée. Recharge la page avant de recommencer.");
             window.location.reload();
             return;
         }
@@ -481,12 +534,27 @@
             const redirectUrl = new URL(response.url);
             if (redirectUrl.searchParams.get("sync") !== "0") {
                 try {
-                    const state = await recupererEtatApresModification();
-                    // En cas d'échec d'écriture, on garde l'ancienne copie :
-                    // la supprimer empêcherait toute récupération locale.
-                    writeLocalState(state);
+                    // fetch suit le POST-Redirect-GET et fournit déjà le HTML
+                    // rendu avec l'état qui vient d'être accepté par le cache.
+                    const html = await response.text();
+                    const redirectedDocument = new DOMParser().parseFromString(html, "text/html");
+                    const redirectedState = redirectedDocument.getElementById("server-state");
+                    if (!redirectedState) {
+                        throw new Error("État du carnet absent de la page de destination.");
+                    }
+                    const state = JSON.parse(redirectedState.textContent);
+                    if (!writeLocalState(state)) {
+                        setRecoveryMessage(
+                            "La modification a été acceptée temporairement, mais localStorage n'a pas pu être actualisé. Ne ferme pas cette page et télécharge une sauvegarde dès que possible."
+                        );
+                        return;
+                    }
                 } catch (error) {
-                    console.warn("Impossible de mettre à jour le stockage local ; aucune donnée locale n'est supprimée.", error);
+                    console.warn("Impossible de confirmer la copie locale après modification.", error);
+                    setRecoveryMessage(
+                        "La modification a peut-être été acceptée dans le cache temporaire, mais la copie locale n'a pas été confirmée. Tes données locales précédentes restent conservées."
+                    );
+                    return;
                 }
             }
             window.location.assign(cleanSyncParameter(redirectUrl));
