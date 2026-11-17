@@ -5,10 +5,12 @@ on:
     branches:
       - web-app
       - feature/admin-dashboard
+      - feature/local-first-storage
   pull_request:
     branches:
       - web-app
       - feature/admin-dashboard
+      - feature/local-first-storage
 
 permissions:
   contents: read
