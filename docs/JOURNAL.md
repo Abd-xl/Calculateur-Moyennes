@@ -284,3 +284,27 @@ Tester les nouveaux cas avant de poursuivre vers le tableur.
 - Chaque note conserve maintenant sa valeur et son barème d'origine, par exemple `10/10` ou `15/20`.
 - La conversion sur /20 est effectuée uniquement au moment du calcul de la moyenne.
 - La modification et la suppression utilisent l'index de la note afin de distinguer deux notes ayant la même valeur.
+
+
+## 2026-11-17 — Retour à un stockage local-first
+
+### Décision
+L'application web n'utilise plus PostgreSQL. Le `localStorage` de chaque
+navigateur redevient la source durable des carnets. Les sauvegardes JSON
+permettent de restaurer ou transférer les données manuellement.
+
+### Ce qui change
+- Remplacement de l'adaptateur SQLAlchemy par un cache mémoire temporaire.
+- Réhydratation du cache depuis le navigateur au chargement et après un
+  redémarrage du processus.
+- Suppression des modèles, migrations, audits SQL, routes d'administration des
+  visiteurs et dépendances PostgreSQL.
+- Conservation de la page admin comme écran d'information HTTP 503, sans accès
+  aux profils ni aux opérations historiques.
+- Conservation du stockage JSON de l'ancienne interface CLI.
+
+### Limites
+Le cache mémoire nécessite un seul worker Gunicorn et ne synchronise pas les
+navigateurs entre eux. Les données uniquement présentes dans PostgreSQL ne
+sont pas récupérées automatiquement. Les données locales ou les exports JSON
+doivent être préservés avant toute désactivation de la base de production.
