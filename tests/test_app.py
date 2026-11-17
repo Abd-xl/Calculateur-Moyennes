@@ -155,3 +155,49 @@ def test_memory_cache_can_be_rehydrated_after_process_restart():
     )
     assert restored.status_code == 200
     assert restored.get_json() == payload
+
+
+def test_evicted_cache_can_be_restored_without_overwriting_browser_copy():
+    app = create_app({
+        "TESTING": True,
+        "WTF_CSRF_ENABLED": False,
+        "SECRET_KEY": "test-only-secret-key",
+        "MEMORY_PROFILE_LIMIT": 1,
+    })
+    first_browser = app.test_client()
+    second_browser = app.test_client()
+    browser_state = {
+        "notes": {"Maths": [{"note": 17, "bareme": 20}]},
+        "coef": {"Maths": 4},
+    }
+
+    initial = first_browser.post(
+        "/api/synchroniser",
+        json=browser_state,
+        headers={"If-Match": '"1"'},
+    )
+    assert initial.status_code == 200
+    assert initial.get_json() == browser_state
+
+    # Le deuxième navigateur évince la première entrée du cache borné.
+    assert second_browser.get("/").status_code == 200
+
+    # L'ancien onglet envoie encore sa version : le cache vide renvoie 409.
+    conflict = first_browser.post(
+        "/api/synchroniser",
+        json={"notes": {}, "coef": {}},
+        headers={"If-Match": '"2"'},
+    )
+    assert conflict.status_code == 409
+    assert conflict.get_json()["data"] == {"notes": {}, "coef": {}}
+
+    # Le client réhydrate le cache à partir de localStorage, sans prendre
+    # l'état vide de la réponse de conflit comme nouvelle source de vérité.
+    restored = first_browser.post(
+        "/api/synchroniser",
+        json=browser_state,
+        headers={"If-Match": '"1"'},
+    )
+    assert restored.status_code == 200
+    assert restored.get_json() == browser_state
+    assert first_browser.get("/api/etat").get_json() == browser_state
